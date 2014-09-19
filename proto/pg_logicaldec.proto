@@ -1,0 +1,32 @@
+package decoderbufs;
+
+option java_package="dedoderbufs.proto";
+option java_outer_classname = "TxnProto";
+option optimize_for = SPEED;
+
+enum Op {
+    INSERT = 0;
+    UPDATE = 1;
+    DELETE = 2;
+}
+
+message DatumMessage {
+	optional string column_name = 1;
+	optional int64 column_type = 2;	
+	optional int32 datum_int32 = 3;
+	optional int64 datum_int64 = 4;
+	optional float datum_float = 5;
+	optional double datum_double = 6;
+	optional bool datum_bool = 7;
+	optional string datum_string = 8;
+	optional bytes datum_bytes = 9;
+}
+
+message TxnMessage {
+    optional sint64 timestamp = 1;
+    optional int64 xid = 2;
+    optional string table = 3;
+    optional Op op = 4;
+    optional DatumMessage new_datum = 5;
+    optional DatumMessage old_datum = 6;
+}
