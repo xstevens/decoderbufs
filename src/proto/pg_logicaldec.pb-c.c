@@ -6,7 +6,7 @@
 #define PROTOBUF_C__NO_DEPRECATED
 #endif
 
-#include "proto/pg_logicaldec.pb-c.h"
+#include "pg_logicaldec.pb-c.h"
 void   decoderbufs__datum_message__init
                      (Decoderbufs__DatumMessage         *message)
 {
@@ -50,47 +50,47 @@ void   decoderbufs__datum_message__free_unpacked
   assert(message->base.descriptor == &decoderbufs__datum_message__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-void   decoderbufs__txn_message__init
-                     (Decoderbufs__TxnMessage         *message)
+void   decoderbufs__row_message__init
+                     (Decoderbufs__RowMessage         *message)
 {
-  static Decoderbufs__TxnMessage init_value = DECODERBUFS__TXN_MESSAGE__INIT;
+  static Decoderbufs__RowMessage init_value = DECODERBUFS__ROW_MESSAGE__INIT;
   *message = init_value;
 }
-size_t decoderbufs__txn_message__get_packed_size
-                     (const Decoderbufs__TxnMessage *message)
+size_t decoderbufs__row_message__get_packed_size
+                     (const Decoderbufs__RowMessage *message)
 {
-  assert(message->base.descriptor == &decoderbufs__txn_message__descriptor);
+  assert(message->base.descriptor == &decoderbufs__row_message__descriptor);
   return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
 }
-size_t decoderbufs__txn_message__pack
-                     (const Decoderbufs__TxnMessage *message,
+size_t decoderbufs__row_message__pack
+                     (const Decoderbufs__RowMessage *message,
                       uint8_t       *out)
 {
-  assert(message->base.descriptor == &decoderbufs__txn_message__descriptor);
+  assert(message->base.descriptor == &decoderbufs__row_message__descriptor);
   return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
 }
-size_t decoderbufs__txn_message__pack_to_buffer
-                     (const Decoderbufs__TxnMessage *message,
+size_t decoderbufs__row_message__pack_to_buffer
+                     (const Decoderbufs__RowMessage *message,
                       ProtobufCBuffer *buffer)
 {
-  assert(message->base.descriptor == &decoderbufs__txn_message__descriptor);
+  assert(message->base.descriptor == &decoderbufs__row_message__descriptor);
   return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
 }
-Decoderbufs__TxnMessage *
-       decoderbufs__txn_message__unpack
+Decoderbufs__RowMessage *
+       decoderbufs__row_message__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data)
 {
-  return (Decoderbufs__TxnMessage *)
-     protobuf_c_message_unpack (&decoderbufs__txn_message__descriptor,
+  return (Decoderbufs__RowMessage *)
+     protobuf_c_message_unpack (&decoderbufs__row_message__descriptor,
                                 allocator, len, data);
 }
-void   decoderbufs__txn_message__free_unpacked
-                     (Decoderbufs__TxnMessage *message,
+void   decoderbufs__row_message__free_unpacked
+                     (Decoderbufs__RowMessage *message,
                       ProtobufCAllocator *allocator)
 {
-  assert(message->base.descriptor == &decoderbufs__txn_message__descriptor);
+  assert(message->base.descriptor == &decoderbufs__row_message__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
 static const ProtobufCFieldDescriptor decoderbufs__datum_message__field_descriptors[9] =
@@ -235,27 +235,15 @@ const ProtobufCMessageDescriptor decoderbufs__datum_message__descriptor =
   (ProtobufCMessageInit) decoderbufs__datum_message__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor decoderbufs__txn_message__field_descriptors[6] =
+static const ProtobufCFieldDescriptor decoderbufs__row_message__field_descriptors[5] =
 {
   {
-    "timestamp",
+    "commit_time",
     1,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_SINT64,
-    offsetof(Decoderbufs__TxnMessage, has_timestamp),
-    offsetof(Decoderbufs__TxnMessage, timestamp),
-    NULL,
-    NULL,
-    0,             /* flags */
-    0,NULL,NULL    /* reserved1,reserved2, etc */
-  },
-  {
-    "xid",
-    2,
-    PROTOBUF_C_LABEL_OPTIONAL,
-    PROTOBUF_C_TYPE_INT64,
-    offsetof(Decoderbufs__TxnMessage, has_xid),
-    offsetof(Decoderbufs__TxnMessage, xid),
+    offsetof(Decoderbufs__RowMessage, has_commit_time),
+    offsetof(Decoderbufs__RowMessage, commit_time),
     NULL,
     NULL,
     0,             /* flags */
@@ -263,11 +251,11 @@ static const ProtobufCFieldDescriptor decoderbufs__txn_message__field_descriptor
   },
   {
     "table",
-    3,
+    2,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_STRING,
     0,   /* quantifier_offset */
-    offsetof(Decoderbufs__TxnMessage, table),
+    offsetof(Decoderbufs__RowMessage, table),
     NULL,
     NULL,
     0,             /* flags */
@@ -275,67 +263,66 @@ static const ProtobufCFieldDescriptor decoderbufs__txn_message__field_descriptor
   },
   {
     "op",
-    4,
+    3,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_ENUM,
-    offsetof(Decoderbufs__TxnMessage, has_op),
-    offsetof(Decoderbufs__TxnMessage, op),
+    offsetof(Decoderbufs__RowMessage, has_op),
+    offsetof(Decoderbufs__RowMessage, op),
     &decoderbufs__op__descriptor,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "new_datum",
-    5,
-    PROTOBUF_C_LABEL_OPTIONAL,
+    "new_tuple",
+    4,
+    PROTOBUF_C_LABEL_REPEATED,
     PROTOBUF_C_TYPE_MESSAGE,
-    0,   /* quantifier_offset */
-    offsetof(Decoderbufs__TxnMessage, new_datum),
+    offsetof(Decoderbufs__RowMessage, n_new_tuple),
+    offsetof(Decoderbufs__RowMessage, new_tuple),
     &decoderbufs__datum_message__descriptor,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "old_datum",
-    6,
-    PROTOBUF_C_LABEL_OPTIONAL,
+    "old_tuple",
+    5,
+    PROTOBUF_C_LABEL_REPEATED,
     PROTOBUF_C_TYPE_MESSAGE,
-    0,   /* quantifier_offset */
-    offsetof(Decoderbufs__TxnMessage, old_datum),
+    offsetof(Decoderbufs__RowMessage, n_old_tuple),
+    offsetof(Decoderbufs__RowMessage, old_tuple),
     &decoderbufs__datum_message__descriptor,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
 };
-static const unsigned decoderbufs__txn_message__field_indices_by_name[] = {
-  4,   /* field[4] = new_datum */
-  5,   /* field[5] = old_datum */
-  3,   /* field[3] = op */
-  2,   /* field[2] = table */
-  0,   /* field[0] = timestamp */
-  1,   /* field[1] = xid */
+static const unsigned decoderbufs__row_message__field_indices_by_name[] = {
+  0,   /* field[0] = commit_time */
+  3,   /* field[3] = new_tuple */
+  4,   /* field[4] = old_tuple */
+  2,   /* field[2] = op */
+  1,   /* field[1] = table */
 };
-static const ProtobufCIntRange decoderbufs__txn_message__number_ranges[1 + 1] =
+static const ProtobufCIntRange decoderbufs__row_message__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 6 }
+  { 0, 5 }
 };
-const ProtobufCMessageDescriptor decoderbufs__txn_message__descriptor =
+const ProtobufCMessageDescriptor decoderbufs__row_message__descriptor =
 {
   PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
-  "decoderbufs.TxnMessage",
-  "TxnMessage",
-  "Decoderbufs__TxnMessage",
+  "decoderbufs.RowMessage",
+  "RowMessage",
+  "Decoderbufs__RowMessage",
   "decoderbufs",
-  sizeof(Decoderbufs__TxnMessage),
-  6,
-  decoderbufs__txn_message__field_descriptors,
-  decoderbufs__txn_message__field_indices_by_name,
-  1,  decoderbufs__txn_message__number_ranges,
-  (ProtobufCMessageInit) decoderbufs__txn_message__init,
+  sizeof(Decoderbufs__RowMessage),
+  5,
+  decoderbufs__row_message__field_descriptors,
+  decoderbufs__row_message__field_indices_by_name,
+  1,  decoderbufs__row_message__number_ranges,
+  (ProtobufCMessageInit) decoderbufs__row_message__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
 const ProtobufCEnumValue decoderbufs__op__enum_values_by_number[3] =

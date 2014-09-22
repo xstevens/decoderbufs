@@ -16,7 +16,7 @@ PROTOBUF_C__BEGIN_DECLS
 
 
 typedef struct _Decoderbufs__DatumMessage Decoderbufs__DatumMessage;
-typedef struct _Decoderbufs__TxnMessage Decoderbufs__TxnMessage;
+typedef struct _Decoderbufs__RowMessage Decoderbufs__RowMessage;
 
 
 /* --- enums --- */
@@ -55,22 +55,22 @@ struct  _Decoderbufs__DatumMessage
     , NULL, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, NULL, 0,{0,NULL} }
 
 
-struct  _Decoderbufs__TxnMessage
+struct  _Decoderbufs__RowMessage
 {
   ProtobufCMessage base;
-  protobuf_c_boolean has_timestamp;
-  int64_t timestamp;
-  protobuf_c_boolean has_xid;
-  int64_t xid;
+  protobuf_c_boolean has_commit_time;
+  int64_t commit_time;
   char *table;
   protobuf_c_boolean has_op;
   Decoderbufs__Op op;
-  Decoderbufs__DatumMessage *new_datum;
-  Decoderbufs__DatumMessage *old_datum;
+  size_t n_new_tuple;
+  Decoderbufs__DatumMessage **new_tuple;
+  size_t n_old_tuple;
+  Decoderbufs__DatumMessage **old_tuple;
 };
-#define DECODERBUFS__TXN_MESSAGE__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&decoderbufs__txn_message__descriptor) \
-    , 0,0, 0,0, NULL, 0,0, NULL, NULL }
+#define DECODERBUFS__ROW_MESSAGE__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&decoderbufs__row_message__descriptor) \
+    , 0,0, NULL, 0,0, 0,NULL, 0,NULL }
 
 
 /* Decoderbufs__DatumMessage methods */
@@ -92,32 +92,32 @@ Decoderbufs__DatumMessage *
 void   decoderbufs__datum_message__free_unpacked
                      (Decoderbufs__DatumMessage *message,
                       ProtobufCAllocator *allocator);
-/* Decoderbufs__TxnMessage methods */
-void   decoderbufs__txn_message__init
-                     (Decoderbufs__TxnMessage         *message);
-size_t decoderbufs__txn_message__get_packed_size
-                     (const Decoderbufs__TxnMessage   *message);
-size_t decoderbufs__txn_message__pack
-                     (const Decoderbufs__TxnMessage   *message,
+/* Decoderbufs__RowMessage methods */
+void   decoderbufs__row_message__init
+                     (Decoderbufs__RowMessage         *message);
+size_t decoderbufs__row_message__get_packed_size
+                     (const Decoderbufs__RowMessage   *message);
+size_t decoderbufs__row_message__pack
+                     (const Decoderbufs__RowMessage   *message,
                       uint8_t             *out);
-size_t decoderbufs__txn_message__pack_to_buffer
-                     (const Decoderbufs__TxnMessage   *message,
+size_t decoderbufs__row_message__pack_to_buffer
+                     (const Decoderbufs__RowMessage   *message,
                       ProtobufCBuffer     *buffer);
-Decoderbufs__TxnMessage *
-       decoderbufs__txn_message__unpack
+Decoderbufs__RowMessage *
+       decoderbufs__row_message__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data);
-void   decoderbufs__txn_message__free_unpacked
-                     (Decoderbufs__TxnMessage *message,
+void   decoderbufs__row_message__free_unpacked
+                     (Decoderbufs__RowMessage *message,
                       ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
 typedef void (*Decoderbufs__DatumMessage_Closure)
                  (const Decoderbufs__DatumMessage *message,
                   void *closure_data);
-typedef void (*Decoderbufs__TxnMessage_Closure)
-                 (const Decoderbufs__TxnMessage *message,
+typedef void (*Decoderbufs__RowMessage_Closure)
+                 (const Decoderbufs__RowMessage *message,
                   void *closure_data);
 
 /* --- services --- */
@@ -127,7 +127,7 @@ typedef void (*Decoderbufs__TxnMessage_Closure)
 
 extern const ProtobufCEnumDescriptor    decoderbufs__op__descriptor;
 extern const ProtobufCMessageDescriptor decoderbufs__datum_message__descriptor;
-extern const ProtobufCMessageDescriptor decoderbufs__txn_message__descriptor;
+extern const ProtobufCMessageDescriptor decoderbufs__row_message__descriptor;
 
 PROTOBUF_C__END_DECLS
 

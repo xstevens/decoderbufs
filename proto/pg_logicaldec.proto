@@ -22,11 +22,10 @@ message DatumMessage {
 	optional bytes datum_bytes = 9;
 }
 
-message TxnMessage {
-    optional sint64 timestamp = 1;
-    optional int64 xid = 2;
-    optional string table = 3;
-    optional Op op = 4;
-    optional DatumMessage new_datum = 5;
-    optional DatumMessage old_datum = 6;
+message RowMessage {
+	optional sint64 commit_time = 1;
+	optional string table = 2;
+    optional Op op = 3;
+    repeated DatumMessage new_tuple = 4;
+    repeated DatumMessage old_tuple = 5;
 }
