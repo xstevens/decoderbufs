@@ -12,7 +12,7 @@ Version: 0.0.1
 **decoderbufs** is released under the MIT license (See LICENSE file).
 
 **Shoutouts:**
-- [The PostgreSQL Team](https://postgresql.org) for adding logical decoding support. This is a immensely useful feature.
+- [The PostgreSQL Team](https://postgresql.org) for adding [logical decoding](http://www.postgresql.org/docs/9.4/static/logicaldecoding.html) support. This is a immensely useful feature.
 - [Michael Paquier](https://github.com/michaelpq) for his [decoder_raw](https://github.com/michaelpq/pg_plugins/tree/master/decoder_raw) 
 project and blog posts as a guide to teach myself how to write a PostgreSQL logical decoder output plugin.
 - [Martin Kleppmann](https://github.com/ept) for making me aware that PostgreSQL was working on logical decoding.
@@ -67,16 +67,20 @@ And restart PostgreSQL.
 ### Usage
     -- can use SQL for demo purposes
     select * from pg_create_logical_replication_slot('decoderbufs_demo', 'decoderbufs');
-    -- DO SOME TABLE MODIFICATIONS
+    
+    -- DO SOME TABLE MODIFICATIONS (see below about UPDATE/DELETE)
+    
     -- peek at WAL changes using decoderbufs debug mode for SQL console
     select data from pg_logical_slot_peek_changes('decoderbufs_demo', NULL, NULL, 'debug-mode', '1');
     -- get WAL changes using decoderbufs to update the WAL position
     select data from pg_logical_slot_get_changes('decoderbufs_demo', NULL, NULL, 'debug-mode', '1');
+    
     -- check the WAL position of logical replicators
     select * from pg_replication_slots where slot_type = 'logical';
 
-The binary format uses simple frame encoding, which uses an 8-byte length (uint64_t) followed by that number of bytes for the Protocol Buffer payload. The 
-easy way to test check this out is to use _pg\_recvlogical_ like so:
+If you're performing an UPDATE/DELETE on your table and you don't see results for those operations from logical decoding, make sure you have set [REPLICA IDENTITY](http://www.postgresql.org/docs/9.4/static/sql-altertable.html#SQL-CREATETABLE-REPLICA-IDENTITY) appropriately for your use case.
+
+The binary format uses simple frame encoding, which uses an 8-byte length (uint64\_t) followed by that number of bytes for the Protocol Buffer payload. The easy way to test check this out is to use _pg\_recvlogical_ like so:
 
     pg_recvlogical -h localhost -d <yourdb> -U <youruser> -w -S decoderbufs_demo -P decoderbufs -f decoderbuf.frames -s 1 -F 1 --start
     
