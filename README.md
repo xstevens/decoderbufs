@@ -56,7 +56,7 @@ Once the extension has been installed you just need to enable it and logical rep
     #wal_sender_timeout = 60s       # in milliseconds; 0 disables
     max_replication_slots = 4       # max number of replication slots (change requires restart)
 
-In addition, permissions will have to be added for the user that astrochicken uses to connect to be able to replicate. This can be modified in _pg\_hba.conf_ like so:
+In addition, permissions will have to be added for the user that connects to the DB to be able to replicate. This can be modified in _pg\_hba.conf_ like so:
 
     local   replication     <youruser>                          trust
     host    replication     <youruser>  127.0.0.1/32            trust
