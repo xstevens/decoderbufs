@@ -1,6 +1,6 @@
 package decoderbufs;
 
-option java_package="dedoderbufs.proto";
+option java_package="decoderbufs.proto";
 option java_outer_classname = "PgldProto";
 option optimize_for = SPEED;
 
@@ -11,20 +11,20 @@ enum Op {
 }
 
 message DatumMessage {
-	optional string column_name = 1;
-	optional int64 column_type = 2;
-	optional int32 datum_int32 = 3;
-	optional int64 datum_int64 = 4;
-	optional float datum_float = 5;
-	optional double datum_double = 6;
-	optional bool datum_bool = 7;
-	optional string datum_string = 8;
-	optional bytes datum_bytes = 9;
+    optional string column_name = 1;
+    optional int64 column_type = 2;
+    optional int32 datum_int32 = 3;
+    optional int64 datum_int64 = 4;
+    optional float datum_float = 5;
+    optional double datum_double = 6;
+    optional bool datum_bool = 7;
+    optional string datum_string = 8;
+    optional bytes datum_bytes = 9;
 }
 
 message RowMessage {
-	optional sint64 commit_time = 1;
-	optional string table = 2;
+    optional sint64 commit_time = 1;
+    optional string table = 2;
     optional Op op = 3;
     repeated DatumMessage new_tuple = 4;
     repeated DatumMessage old_tuple = 5;
