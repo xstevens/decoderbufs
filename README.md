@@ -35,7 +35,7 @@ This code is built with the following assumptions.  You may get mixed results if
 To build you will need to install PostgreSQL (for pg_config) and PostgreSQL server development packages. On Debian 
 based distributions you can usually do something like this:
 
-    apt-get install -y postgresql postgresql-server-dev-9.2
+    apt-get install -y postgresql postgresql-server-dev-9.4
     
 You will also need to make sure that protobuf-c and it's header files have been installed. See their Github 
 page for further details.
