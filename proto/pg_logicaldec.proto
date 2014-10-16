@@ -1,6 +1,6 @@
 package decoderbufs;
 
-option java_package="dedoderbufs.proto";
+option java_package="decoderbufs.proto";
 option java_outer_classname = "PgldProto";
 option optimize_for = SPEED;
 
