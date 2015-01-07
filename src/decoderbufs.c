@@ -47,6 +47,7 @@
 #include "utils/relcache.h"
 #include "utils/syscache.h"
 #include "utils/typcache.h"
+#include "utils/uuid.h"
 #include "proto/pg_logicaldec.pb-c.h"
 
 PG_MODULE_MAGIC;
@@ -218,7 +219,13 @@ static void print_tuple_msg(StringInfo out, Decoderbufs__DatumMessage **tup,
           case NUMERICOID:
             appendStringInfo(out, ", datum[%f]", dmsg->datum_double);
             break;
+          case CHAROID:
+          case VARCHAROID:
+          case BPCHAROID:
           case TEXTOID:
+          case JSONOID:
+          case XMLOID:
+          case UUIDOID:
           case TIMESTAMPOID:
           case TIMESTAMPTZOID:
             appendStringInfo(out, ", datum[%s]", dmsg->datum_string);
@@ -301,6 +308,7 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
     case TEXTOID:
     case JSONOID:
     case XMLOID:
+    case UUIDOID:
       output = OidOutputFunctionCall(typoutput, datum);
       datum_msg->datum_string = pnstrdup(output, strlen(output));
       break;
