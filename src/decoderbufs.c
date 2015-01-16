@@ -417,9 +417,7 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
   /* set common fields */
   rmsg.commit_time = TIMESTAMPTZ_TO_USEC_SINCE_EPOCH(txn->commit_time);
   rmsg.has_commit_time = true;
-  rmsg.table = quote_qualified_identifier(
-      get_namespace_name(get_rel_namespace(RelationGetRelid(relation))),
-      NameStr(class_form->relname));
+  rmsg.table = pstrdup(NameStr(class_form->relname));
 
   /* decode different operation types */
   switch (change->action) {
