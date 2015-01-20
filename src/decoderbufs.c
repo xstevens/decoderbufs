@@ -24,11 +24,11 @@
  */
 
 #if defined(__linux__)
-  #include <endian.h>
+#include <endian.h>
 #elif defined(__APPLE__)
-  #include <machine/endian.h>
-  #include <libkern/OSByteOrder.h>
-  #define htobe64(x) OSSwapHostToBigInt64(x)
+#include <machine/endian.h>
+#include <libkern/OSByteOrder.h>
+#define htobe64(x) OSSwapHostToBigInt64(x)
 #endif
 #include <inttypes.h>
 
@@ -91,8 +91,7 @@ static void pg_decode_commit_txn(LogicalDecodingContext *ctx,
 static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
                              Relation rel, ReorderBufferChange *change);
 
-void _PG_init(void) {
-}
+void _PG_init(void) {}
 
 /* specify output plugin callbacks */
 void _PG_output_plugin_init(OutputPluginCallbacks *cb) {
@@ -148,21 +147,34 @@ static void pg_decode_startup(LogicalDecodingContext *ctx,
     char *geom_oid_str = NULL;
     char *geog_oid_str = NULL;
     if (SPI_connect() == SPI_ERROR_CONNECT) {
-      elog(NOTICE, "Could not connect to SPI manager to scan for PostGIS types");
+      elog(NOTICE,
+           "Could not connect to SPI manager to scan for PostGIS types");
       SPI_finish();
       return;
     }
-    if (SPI_OK_SELECT == SPI_execute("SELECT oid FROM pg_type WHERE typname = 'geometry'", true, 1) && SPI_processed > 0) {
-      geom_oid_str = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
+    if (SPI_OK_SELECT ==
+            SPI_execute("SELECT oid FROM pg_type WHERE typname = 'geometry'",
+                        true, 1) &&
+        SPI_processed > 0) {
+      geom_oid_str =
+          SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
       if (geom_oid_str != NULL) {
-        fprintf(stderr, "Decoderbufs detected PostGIS geometry type with oid: %s\n", geom_oid_str);
+        fprintf(stderr,
+                "Decoderbufs detected PostGIS geometry type with oid: %s\n",
+                geom_oid_str);
         geometry_oid = atoi(geom_oid_str);
       }
     }
-    if (SPI_OK_SELECT == SPI_execute("SELECT oid FROM pg_type WHERE typname = 'geography'", true, 1) && SPI_processed > 0) {
-      geog_oid_str = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
+    if (SPI_OK_SELECT ==
+            SPI_execute("SELECT oid FROM pg_type WHERE typname = 'geography'",
+                        true, 1) &&
+        SPI_processed > 0) {
+      geog_oid_str =
+          SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
       if (geog_oid_str != NULL) {
-        fprintf(stderr, "Decoderbufs detected PostGIS geography type with oid: %s\n", geog_oid_str);
+        fprintf(stderr,
+                "Decoderbufs detected PostGIS geography type with oid: %s\n",
+                geog_oid_str);
         geography_oid = atoi(geog_oid_str);
       }
     }
@@ -180,8 +192,7 @@ static void pg_decode_shutdown(LogicalDecodingContext *ctx) {
 
 /* BEGIN callback */
 static void pg_decode_begin_txn(LogicalDecodingContext *ctx,
-                                ReorderBufferTXN *txn) {
-}
+                                ReorderBufferTXN *txn) {}
 
 /* COMMIT callback */
 static void pg_decode_commit_txn(LogicalDecodingContext *ctx,
@@ -268,13 +279,18 @@ static void print_tuple_msg(StringInfo out, Decoderbufs__DatumMessage **tup,
             appendStringInfo(out, ", datum[%s]", dmsg->datum_string);
             break;
           case POINTOID:
-            appendStringInfo(out, ", datum[POINT(%f, %f)]", dmsg->datum_point->x, dmsg->datum_point->y);
+            appendStringInfo(out, ", datum[POINT(%f, %f)]",
+                             dmsg->datum_point->x, dmsg->datum_point->y);
             break;
           default:
-            if (dmsg->column_type == geometry_oid && dmsg->datum_point != NULL) {
-              appendStringInfo(out, ", datum[GEOMETRY(POINT(%f,%f))]", dmsg->datum_point->x, dmsg->datum_point->y);
-            } else if (dmsg->column_type == geography_oid && dmsg->datum_point != NULL) {
-              appendStringInfo(out, ", datum[GEOGRAPHY(POINT(%f,%f))]", dmsg->datum_point->x, dmsg->datum_point->y);
+            if (dmsg->column_type == geometry_oid &&
+                dmsg->datum_point != NULL) {
+              appendStringInfo(out, ", datum[GEOMETRY(POINT(%f,%f))]",
+                               dmsg->datum_point->x, dmsg->datum_point->y);
+            } else if (dmsg->column_type == geography_oid &&
+                       dmsg->datum_point != NULL) {
+              appendStringInfo(out, ", datum[GEOGRAPHY(POINT(%f,%f))]",
+                               dmsg->datum_point->x, dmsg->datum_point->y);
             }
             break;
         }
@@ -307,13 +323,14 @@ static double numeric_to_double_no_overflow(Numeric num) {
   return val;
 }
 
-static bool geography_point_as_decoderbufs_point(Datum datum, Decoderbufs__Point *p) {
+static bool geography_point_as_decoderbufs_point(Datum datum,
+                                                 Decoderbufs__Point *p) {
   GSERIALIZED *geom;
   LWGEOM *lwgeom;
   LWPOINT *point = NULL;
   POINT2D p2d;
 
-  geom = (GSERIALIZED*)PG_DETOAST_DATUM(datum);
+  geom = (GSERIALIZED *)PG_DETOAST_DATUM(datum);
   if (gserialized_get_type(geom) != POINTTYPE) {
     return false;
   }
@@ -386,9 +403,9 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
       datum_msg->datum_string = pnstrdup(output, strlen(output));
       break;
     case TIMESTAMPOID:
-      /*
-       * THIS FALLTHROUGH IS MAKING THE ASSUMPTION WE ARE ON UTC
-       */
+    /*
+     * THIS FALLTHROUGH IS MAKING THE ASSUMPTION WE ARE ON UTC
+     */
     case TIMESTAMPTZOID:
       output = timestamptz_to_str(DatumGetTimestampTz(datum));
       datum_msg->datum_string = pnstrdup(output, strlen(output));
@@ -585,7 +602,7 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
     size_t ssize = decoderbufs__row_message__pack(&rmsg, packed);
     uint64_t flen = htobe64(ssize);
     /* frame encoding size */
-    appendBinaryStringInfo(ctx->out, (char *) &flen, sizeof(flen));
+    appendBinaryStringInfo(ctx->out, (char *)&flen, sizeof(flen));
     /* frame encoding payload */
     appendBinaryStringInfo(ctx->out, packed, ssize);
     OutputPluginWrite(ctx, true);
