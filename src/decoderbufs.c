@@ -36,10 +36,12 @@
 #include "funcapi.h"
 #include "catalog/pg_class.h"
 #include "catalog/pg_type.h"
+#include "executor/spi.h"
 #include "replication/output_plugin.h"
 #include "replication/logical.h"
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
+#include "utils/geo_decls.h"
 #include "utils/json.h"
 #include "utils/memutils.h"
 #include "utils/numeric.h"
@@ -49,6 +51,10 @@
 #include "utils/typcache.h"
 #include "utils/uuid.h"
 #include "proto/pg_logicaldec.pb-c.h"
+
+/* POSTGIS version define so it doesn't redef macros */
+#define POSTGIS_PGSQL_VERSION 94
+#include "libpgcommon/lwgeom_pg.h"
 
 PG_MODULE_MAGIC;
 
@@ -67,6 +73,9 @@ typedef struct {
   MemoryContext context;
   bool debug_mode;
 } DecoderData;
+/* GLOBALs for PostGIS dynamic OIDs */
+int geometry_oid = -1;
+int geography_oid = -1;
 
 /* these must be available to pg_dlsym() */
 extern void _PG_init(void);
@@ -124,16 +133,40 @@ static void pg_decode_startup(LogicalDecodingContext *ctx,
       }
 
       if (data->debug_mode) {
-        fprintf(stderr, "Decoderbufs DEBUG MODE is ON.");
+        fprintf(stderr, "Decoderbufs DEBUG MODE is ON.\n");
         opt->output_type = OUTPUT_PLUGIN_TEXTUAL_OUTPUT;
       } else {
-        fprintf(stderr, "Decoderbufs DEBUG MODE is OFF.");
+        fprintf(stderr, "Decoderbufs DEBUG MODE is OFF.\n");
       }
     } else {
       ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                       errmsg("option \"%s\" = \"%s\" is unknown", elem->defname,
                              elem->arg ? strVal(elem->arg) : "(null)")));
     }
+
+    // set PostGIS geometry type id (these are dynamic unfortunately)
+    char *geom_oid_str = NULL;
+    char *geog_oid_str = NULL;
+    if (SPI_connect() == SPI_ERROR_CONNECT) {
+      elog(NOTICE, "Could not connect to SPI manager to scan for PostGIS types");
+      SPI_finish();
+      return;
+    }
+    if (SPI_OK_SELECT == SPI_execute("SELECT oid FROM pg_type WHERE typname = 'geometry'", true, 1) && SPI_processed > 0) {
+      geom_oid_str = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
+      if (geom_oid_str != NULL) {
+        fprintf(stderr, "Decoderbufs detected PostGIS geometry type with oid: %s\n", geom_oid_str);
+        geometry_oid = atoi(geom_oid_str);
+      }
+    }
+    if (SPI_OK_SELECT == SPI_execute("SELECT oid FROM pg_type WHERE typname = 'geography'", true, 1) && SPI_processed > 0) {
+      geog_oid_str = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
+      if (geog_oid_str != NULL) {
+        fprintf(stderr, "Decoderbufs detected PostGIS geography type with oid: %s\n", geog_oid_str);
+        geography_oid = atoi(geog_oid_str);
+      }
+    }
+    SPI_finish();
   }
 }
 
@@ -156,7 +189,7 @@ static void pg_decode_commit_txn(LogicalDecodingContext *ctx,
 }
 
 /* convenience method to free up sub-messages */
-static void free_row_msg_subs(Decoderbufs__RowMessage *msg) {
+static void row_message_destroy(Decoderbufs__RowMessage *msg) {
   if (!msg) {
     return;
   }
@@ -171,6 +204,8 @@ static void free_row_msg_subs(Decoderbufs__RowMessage *msg) {
           pfree(msg->new_tuple[i]->datum_bytes.data);
           msg->new_tuple[i]->datum_bytes.data = NULL;
           msg->new_tuple[i]->datum_bytes.len = 0;
+        } else if (msg->new_tuple[i]->datum_point) {
+          pfree(msg->new_tuple[i]->datum_point);
         }
         pfree(msg->new_tuple[i]);
       }
@@ -186,6 +221,8 @@ static void free_row_msg_subs(Decoderbufs__RowMessage *msg) {
           pfree(msg->old_tuple[i]->datum_bytes.data);
           msg->old_tuple[i]->datum_bytes.data = NULL;
           msg->old_tuple[i]->datum_bytes.len = 0;
+        } else if (msg->old_tuple[i]->datum_point) {
+          pfree(msg->old_tuple[i]->datum_point);
         }
         pfree(msg->old_tuple[i]);
       }
@@ -230,7 +267,15 @@ static void print_tuple_msg(StringInfo out, Decoderbufs__DatumMessage **tup,
           case TIMESTAMPTZOID:
             appendStringInfo(out, ", datum[%s]", dmsg->datum_string);
             break;
+          case POINTOID:
+            appendStringInfo(out, ", datum[POINT(%f, %f)]", dmsg->datum_point->x, dmsg->datum_point->y);
+            break;
           default:
+            if (dmsg->column_type == geometry_oid && dmsg->datum_point != NULL) {
+              appendStringInfo(out, ", datum[GEOMETRY(POINT(%f,%f))]", dmsg->datum_point->x, dmsg->datum_point->y);
+            } else if (dmsg->column_type == geography_oid && dmsg->datum_point != NULL) {
+              appendStringInfo(out, ", datum[GEOGRAPHY(POINT(%f,%f))]", dmsg->datum_point->x, dmsg->datum_point->y);
+            }
             break;
         }
         appendStringInfo(out, "\n");
@@ -262,12 +307,40 @@ static double numeric_to_double_no_overflow(Numeric num) {
   return val;
 }
 
+static bool geography_point_as_decoderbufs_point(Datum datum, Decoderbufs__Point *p) {
+  GSERIALIZED *geom;
+  LWGEOM *lwgeom;
+  LWPOINT *point = NULL;
+  POINT2D p2d;
+
+  geom = (GSERIALIZED*)PG_DETOAST_DATUM(datum);
+  if (gserialized_get_type(geom) != POINTTYPE) {
+    return false;
+  }
+
+  lwgeom = lwgeom_from_gserialized(geom);
+  point = lwgeom_as_lwpoint(lwgeom);
+  if (!lwgeom_is_empty(lwgeom)) {
+    return false;
+  }
+
+  getPoint2d_p(point->point, 0, &p2d);
+
+  if (p != NULL) {
+    p->x = p2d.x;
+    p->y = p2d.y;
+  }
+
+  return true;
+}
+
 /* set a datum value based on its OID specified by typid */
 static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
                             Oid typoutput, Datum datum) {
   Numeric num;
   bytea *valptr;
   const char *output;
+  Point *p;
   int size = 0;
   switch (typid) {
     case BOOLOID:
@@ -328,13 +401,26 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
       datum_msg->datum_bytes.len = size;
       datum_msg->has_datum_bytes = true;
       break;
+    case POINTOID:
+      p = DatumGetPointP(datum);
+      datum_msg->datum_point = palloc(sizeof(Decoderbufs__Point));
+      datum_msg->datum_point->x = p->x;
+      datum_msg->datum_point->y = p->y;
+      break;
     default:
-      output = OidOutputFunctionCall(typoutput, datum);
-      size = sizeof(output);
-      datum_msg->datum_bytes.data = palloc(size);
-      memcpy(datum_msg->datum_bytes.data, (uint8_t *)output, size);
-      datum_msg->datum_bytes.len = size;
-      datum_msg->has_datum_bytes = true;
+      // PostGIS uses dynamic OIDs so we need to check the type again here
+      if (typid == geometry_oid || typid == geography_oid) {
+        datum_msg->datum_point = palloc(sizeof(Decoderbufs__Point));
+        geography_point_as_decoderbufs_point(datum, datum_msg->datum_point);
+      } else {
+        output = OidOutputFunctionCall(typoutput, datum);
+        int len = strlen(output);
+        size = sizeof(char) * len;
+        datum_msg->datum_bytes.data = palloc(size);
+        memcpy(datum_msg->datum_bytes.data, (uint8_t *)output, size);
+        datum_msg->datum_bytes.len = len;
+        datum_msg->has_datum_bytes = true;
+      }
       break;
   }
 }
@@ -509,7 +595,7 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
   }
 
   /* cleanup msg */
-  free_row_msg_subs(&rmsg);
+  row_message_destroy(&rmsg);
 
   MemoryContextSwitchTo(old);
   MemoryContextReset(data->context);

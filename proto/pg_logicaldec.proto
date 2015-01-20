@@ -10,6 +10,11 @@ enum Op {
     DELETE = 2;
 }
 
+message Point {
+	required double x = 1;
+	required double y = 2;
+}
+
 message DatumMessage {
     optional string column_name = 1;
     optional int64 column_type = 2;
@@ -20,6 +25,7 @@ message DatumMessage {
     optional bool datum_bool = 7;
     optional string datum_string = 8;
     optional bytes datum_bytes = 9;
+    optional Point datum_point = 10;
 }
 
 message RowMessage {
