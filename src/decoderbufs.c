@@ -337,7 +337,7 @@ static bool geography_point_as_decoderbufs_point(Datum datum,
 
   lwgeom = lwgeom_from_gserialized(geom);
   point = lwgeom_as_lwpoint(lwgeom);
-  if (!lwgeom_is_empty(lwgeom)) {
+  if (lwgeom_is_empty(lwgeom)) {
     return false;
   }
 
