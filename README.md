@@ -24,6 +24,7 @@ This code is built with the following assumptions.  You may get mixed results if
 * [PostgreSQL](http://www.postgresql.org) 9.4+
 * [Protocol Buffers](https://developers.google.com/protocol-buffers) 2.5.0
 * [protobuf-c](https://github.com/protobuf-c/protobuf-c) 1.0.2
+* [PostGIS](http://postgis.net) 2.1.x
 
 ### Requirements
 * PostgreSQL
