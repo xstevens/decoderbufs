@@ -132,10 +132,10 @@ static void pg_decode_startup(LogicalDecodingContext *ctx,
       }
 
       if (data->debug_mode) {
-        fprintf(stderr, "Decoderbufs DEBUG MODE is ON.\n");
+        elog(NOTICE, "Decoderbufs DEBUG MODE is ON.");
         opt->output_type = OUTPUT_PLUGIN_TEXTUAL_OUTPUT;
       } else {
-        fprintf(stderr, "Decoderbufs DEBUG MODE is OFF.\n");
+        elog(NOTICE, "Decoderbufs DEBUG MODE is OFF.");
       }
     } else {
       ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
@@ -147,8 +147,7 @@ static void pg_decode_startup(LogicalDecodingContext *ctx,
     char *geom_oid_str = NULL;
     char *geog_oid_str = NULL;
     if (SPI_connect() == SPI_ERROR_CONNECT) {
-      elog(NOTICE,
-           "Could not connect to SPI manager to scan for PostGIS types");
+      elog(NOTICE, "Could not connect to SPI manager to scan for PostGIS types");
       SPI_finish();
       return;
     }
@@ -159,9 +158,7 @@ static void pg_decode_startup(LogicalDecodingContext *ctx,
       geom_oid_str =
           SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
       if (geom_oid_str != NULL) {
-        fprintf(stderr,
-                "Decoderbufs detected PostGIS geometry type with oid: %s\n",
-                geom_oid_str);
+        elog(NOTICE, "Decoderbufs detected PostGIS geometry type with oid: %s", geom_oid_str);
         geometry_oid = atoi(geom_oid_str);
       }
     }
@@ -172,9 +169,7 @@ static void pg_decode_startup(LogicalDecodingContext *ctx,
       geog_oid_str =
           SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
       if (geog_oid_str != NULL) {
-        fprintf(stderr,
-                "Decoderbufs detected PostGIS geography type with oid: %s\n",
-                geog_oid_str);
+        elog(NOTICE, "Decoderbufs detected PostGIS geography type with oid: %s", geog_oid_str);
         geography_oid = atoi(geog_oid_str);
       }
     }
@@ -346,6 +341,7 @@ static bool geography_point_as_decoderbufs_point(Datum datum,
   if (p != NULL) {
     p->x = p2d.x;
     p->y = p2d.y;
+    elog(DEBUG1, "Translating geography to point: (x,y) = (%f,%f)", p->x, p->y);
   }
 
   return true;
@@ -427,6 +423,7 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
     default:
       // PostGIS uses dynamic OIDs so we need to check the type again here
       if (typid == geometry_oid || typid == geography_oid) {
+        elog(DEBUG1, "Converting geography point to datum_point");
         datum_msg->datum_point = palloc(sizeof(Decoderbufs__Point));
         geography_point_as_decoderbufs_point(datum, datum_msg->datum_point);
       } else {
