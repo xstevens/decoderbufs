@@ -106,6 +106,8 @@ void _PG_output_plugin_init(OutputPluginCallbacks *cb) {
 /* initialize this plugin */
 static void pg_decode_startup(LogicalDecodingContext *ctx,
                               OutputPluginOptions *opt, bool is_init) {
+  elog(INFO, "Entering startup callback");
+
   ListCell *option;
   DecoderData *data;
 
@@ -114,7 +116,6 @@ static void pg_decode_startup(LogicalDecodingContext *ctx,
       ctx->context, "decoderbufs context", ALLOCSET_DEFAULT_MINSIZE,
       ALLOCSET_DEFAULT_INITSIZE, ALLOCSET_DEFAULT_MAXSIZE);
   data->debug_mode = false;
-  ctx->output_plugin_private = data;
   opt->output_type = OUTPUT_PLUGIN_BINARY_OUTPUT;
 
   foreach(option, ctx->output_plugin_options) {
@@ -142,39 +143,50 @@ static void pg_decode_startup(LogicalDecodingContext *ctx,
                       errmsg("option \"%s\" = \"%s\" is unknown", elem->defname,
                              elem->arg ? strVal(elem->arg) : "(null)")));
     }
-
-    // set PostGIS geometry type id (these are dynamic unfortunately)
-    char *geom_oid_str = NULL;
-    char *geog_oid_str = NULL;
-    if (SPI_connect() == SPI_ERROR_CONNECT) {
-      elog(NOTICE, "Could not connect to SPI manager to scan for PostGIS types");
-      SPI_finish();
-      return;
-    }
-    if (SPI_OK_SELECT ==
-            SPI_execute("SELECT oid FROM pg_type WHERE typname = 'geometry'",
-                        true, 1) &&
-        SPI_processed > 0) {
-      geom_oid_str =
-          SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
-      if (geom_oid_str != NULL) {
-        elog(NOTICE, "Decoderbufs detected PostGIS geometry type with oid: %s", geom_oid_str);
-        geometry_oid = atoi(geom_oid_str);
-      }
-    }
-    if (SPI_OK_SELECT ==
-            SPI_execute("SELECT oid FROM pg_type WHERE typname = 'geography'",
-                        true, 1) &&
-        SPI_processed > 0) {
-      geog_oid_str =
-          SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
-      if (geog_oid_str != NULL) {
-        elog(NOTICE, "Decoderbufs detected PostGIS geography type with oid: %s", geog_oid_str);
-        geography_oid = atoi(geog_oid_str);
-      }
-    }
-    SPI_finish();
   }
+
+  // set PostGIS geometry type id (these are dynamic unfortunately)
+  char *geom_oid_str = NULL;
+  char *geog_oid_str = NULL;
+  elog(INFO, "SPI_connect() ... ");
+  if (SPI_connect() == SPI_ERROR_CONNECT) {
+    elog(WARNING, "Could not connect to SPI manager to scan for PostGIS types");
+    SPI_finish();
+    return;
+  }
+  elog(INFO, "SPI_execute(\"SELECT oid FROM pg_type WHERE typname = 'geometry'\") ... ");
+  if (SPI_OK_SELECT ==
+          SPI_execute("SELECT oid FROM pg_type WHERE typname = 'geometry'",
+                      true, 1) &&
+      SPI_processed > 0) {
+    geom_oid_str =
+        SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
+    if (geom_oid_str != NULL) {
+      elog(NOTICE, "Decoderbufs detected PostGIS geometry type with oid: %s", geom_oid_str);
+      geometry_oid = atoi(geom_oid_str);
+    }
+  } else {
+    elog(WARNING, "No type oid detected for PostGIS geometry");
+  }
+  elog(INFO, "SPI_execute(\"SELECT oid FROM pg_type WHERE typname = 'geography'\") ... ");
+  if (SPI_OK_SELECT ==
+          SPI_execute("SELECT oid FROM pg_type WHERE typname = 'geography'",
+                      true, 1) &&
+      SPI_processed > 0) {
+    geog_oid_str =
+        SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
+    if (geog_oid_str != NULL) {
+      elog(NOTICE, "Decoderbufs detected PostGIS geography type with oid: %s", geog_oid_str);
+      geography_oid = atoi(geog_oid_str);
+    }
+  } else {
+    elog(WARNING, "No type oid detected for PostGIS geography");
+  }
+  SPI_finish();
+
+  ctx->output_plugin_private = data;
+
+  elog(INFO, "Exiting startup callback");
 }
 
 /* cleanup this plugin's resources */
@@ -427,6 +439,8 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
         datum_msg->datum_point = palloc(sizeof(Decoderbufs__Point));
         geography_point_as_decoderbufs_point(datum, datum_msg->datum_point);
       } else {
+        elog(DEBUG1, "Encountered unknown typid: %d", typid);
+        elog(DEBUG1, "PostGIS Geometry OID[%d], Geography OID[%d]", geometry_oid, geography_oid);
         output = OidOutputFunctionCall(typoutput, datum);
         int len = strlen(output);
         size = sizeof(char) * len;
