@@ -22,12 +22,13 @@ project and blog posts as a guide to teach myself how to write a PostgreSQL logi
 This code is built with the following assumptions.  You may get mixed results if you deviate from these versions.
 
 * [PostgreSQL](http://www.postgresql.org) 9.4+
-* [Protocol Buffers](https://developers.google.com/protocol-buffers) 2.5.0
-* [protobuf-c](https://github.com/protobuf-c/protobuf-c) 1.0.2
+* [Protocol Buffers](https://developers.google.com/protocol-buffers) 2.6.1
+* [protobuf-c](https://github.com/protobuf-c/protobuf-c) 1.1.0
 * [PostGIS](http://postgis.net) 2.1.x
 
 ### Requirements
 * PostgreSQL
+* PostGIS
 * Protocol Buffers
 * protobuf-c
 
@@ -86,7 +87,35 @@ The binary format uses simple frame encoding, which uses an 8-byte length (uint6
     pg_recvlogical -h localhost -d <yourdb> -U <youruser> -w -S decoderbufs_demo -P decoderbufs -f decoderbuf.frames -s 1 -F 1 --start
     
 For something a bit more useful, I am looking to implement a custom PostgreSQL logical replication client that publishes to something like Apache Kafka.
-            
+          
+### Type Mappings
+
+The following table shows how current PostgreSQL type OIDs are mapped to which decoderbuf fields:
+
+| PostgreSQL Type OID | Decoderbuf Field |
+|---------------------|---------------|
+| BOOLOID             | datum_boolean |
+| INT2OID             | datum_int32   |
+| INT4OID             | datum_int32   |
+| INT8OID             | datum_int64   |
+| OIDOID              | datum_int64   |
+| FLOAT4OID           | datum_float   |
+| FLOAT8OID           | datum_double  |
+| NUMERICOID          | datum_double  |
+| CHAROID             | datum_string  |
+| VARCHAROID          | datum_string  |
+| BPCHAROID           | datum_string  |
+| TEXTOID             | datum_string  |
+| JSONOID             | datum_string  |
+| XMLOID              | datum_string  |
+| UUIDOID             | datum_string  |
+| TIMESTAMPOID        | datum_string  |
+| TIMESTAMPTZOID      | datum_string  |
+| BYTEAOID            | datum_bytes   |
+| POINTOID            | datum_point   |
+| PostGIS geometry    | datum_point   |
+| PostGIS geography   | datum_point   |
+
 ### Support
 
 File bug reports, feature requests and questions using

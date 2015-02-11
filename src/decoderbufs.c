@@ -36,6 +36,7 @@
 #include "funcapi.h"
 #include "catalog/pg_class.h"
 #include "catalog/pg_type.h"
+#include "catalog/namespace.h"
 #include "executor/spi.h"
 #include "replication/output_plugin.h"
 #include "replication/logical.h"
@@ -73,9 +74,10 @@ typedef struct {
   MemoryContext context;
   bool debug_mode;
 } DecoderData;
+
 /* GLOBALs for PostGIS dynamic OIDs */
-int geometry_oid = -1;
-int geography_oid = -1;
+Oid geometry_oid = InvalidOid;
+Oid geography_oid = InvalidOid;
 
 /* these must be available to pg_dlsym() */
 extern void _PG_init(void);
@@ -145,45 +147,6 @@ static void pg_decode_startup(LogicalDecodingContext *ctx,
     }
   }
 
-  // set PostGIS geometry type id (these are dynamic unfortunately)
-  char *geom_oid_str = NULL;
-  char *geog_oid_str = NULL;
-  elog(INFO, "SPI_connect() ... ");
-  if (SPI_connect() == SPI_ERROR_CONNECT) {
-    elog(WARNING, "Could not connect to SPI manager to scan for PostGIS types");
-    SPI_finish();
-    return;
-  }
-  elog(INFO, "SPI_execute(\"SELECT oid FROM pg_type WHERE typname = 'geometry'\") ... ");
-  if (SPI_OK_SELECT ==
-          SPI_execute("SELECT oid FROM pg_type WHERE typname = 'geometry'",
-                      true, 1) &&
-      SPI_processed > 0) {
-    geom_oid_str =
-        SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
-    if (geom_oid_str != NULL) {
-      elog(NOTICE, "Decoderbufs detected PostGIS geometry type with oid: %s", geom_oid_str);
-      geometry_oid = atoi(geom_oid_str);
-    }
-  } else {
-    elog(WARNING, "No type oid detected for PostGIS geometry");
-  }
-  elog(INFO, "SPI_execute(\"SELECT oid FROM pg_type WHERE typname = 'geography'\") ... ");
-  if (SPI_OK_SELECT ==
-          SPI_execute("SELECT oid FROM pg_type WHERE typname = 'geography'",
-                      true, 1) &&
-      SPI_processed > 0) {
-    geog_oid_str =
-        SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
-    if (geog_oid_str != NULL) {
-      elog(NOTICE, "Decoderbufs detected PostGIS geography type with oid: %s", geog_oid_str);
-      geography_oid = atoi(geog_oid_str);
-    }
-  } else {
-    elog(WARNING, "No type oid detected for PostGIS geography");
-  }
-  SPI_finish();
-
   ctx->output_plugin_private = data;
 
   elog(INFO, "Exiting startup callback");
@@ -199,7 +162,22 @@ static void pg_decode_shutdown(LogicalDecodingContext *ctx) {
 
 /* BEGIN callback */
 static void pg_decode_begin_txn(LogicalDecodingContext *ctx,
-                                ReorderBufferTXN *txn) {}
+                                ReorderBufferTXN *txn) {
+  // set PostGIS geometry type id (these are dynamic)
+  // TODO: Figure out how to make sure we get the typid's from postgis extension namespace
+  if (geometry_oid == InvalidOid) {
+    geometry_oid = TypenameGetTypid("geometry");
+    if (geometry_oid != InvalidOid) {
+      elog(DEBUG1, "PostGIS geometry type detected: %u", geometry_oid);
+    }
+  }
+  if (geography_oid == InvalidOid) {
+    geography_oid = TypenameGetTypid("geography");
+    if (geography_oid != InvalidOid) {
+      elog(DEBUG1, "PostGIS geometry type detected: %u", geography_oid);
+    }
+  }
+}
 
 /* COMMIT callback */
 static void pg_decode_commit_txn(LogicalDecodingContext *ctx,
@@ -439,8 +417,7 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
         datum_msg->datum_point = palloc(sizeof(Decoderbufs__Point));
         geography_point_as_decoderbufs_point(datum, datum_msg->datum_point);
       } else {
-        elog(DEBUG1, "Encountered unknown typid: %d", typid);
-        elog(DEBUG1, "PostGIS Geometry OID[%d], Geography OID[%d]", geometry_oid, geography_oid);
+        elog(WARNING, "Encountered unknown typid: %d, using bytes", typid);
         output = OidOutputFunctionCall(typoutput, datum);
         int len = strlen(output);
         size = sizeof(char) * len;
@@ -475,8 +452,7 @@ static void tuple_to_tuple_msg(Decoderbufs__DatumMessage **tmsg,
     Decoderbufs__DatumMessage datum_msg = DECODERBUFS__DATUM_MESSAGE__INIT;
 
     /* set the column name */
-    const char *col_name = quote_identifier(NameStr(attr->attname));
-    datum_msg.column_name = col_name;
+    datum_msg.column_name = quote_identifier(NameStr(attr->attname));
 
     /* set datum from tuple */
     origval = fastgetattr(tuple, natt + 1, tupdesc, &isnull);
@@ -542,7 +518,7 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
         TupleDesc tupdesc = RelationGetDescr(relation);
         rmsg.n_new_tuple = tupdesc->natts;
         rmsg.new_tuple =
-            palloc(sizeof(Decoderbufs__DatumMessage) * tupdesc->natts);
+            palloc(sizeof(Decoderbufs__DatumMessage*) * tupdesc->natts);
         tuple_to_tuple_msg(rmsg.new_tuple, relation,
                            &change->data.tp.newtuple->tuple, tupdesc);
       }
@@ -555,7 +531,7 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
           TupleDesc tupdesc = RelationGetDescr(relation);
           rmsg.n_old_tuple = tupdesc->natts;
           rmsg.old_tuple =
-              palloc(sizeof(Decoderbufs__DatumMessage) * tupdesc->natts);
+              palloc(sizeof(Decoderbufs__DatumMessage*) * tupdesc->natts);
           tuple_to_tuple_msg(rmsg.old_tuple, relation,
                              &change->data.tp.oldtuple->tuple, tupdesc);
         }
@@ -563,7 +539,7 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
           TupleDesc tupdesc = RelationGetDescr(relation);
           rmsg.n_new_tuple = tupdesc->natts;
           rmsg.new_tuple =
-              palloc(sizeof(Decoderbufs__DatumMessage) * tupdesc->natts);
+              palloc(sizeof(Decoderbufs__DatumMessage*) * tupdesc->natts);
           tuple_to_tuple_msg(rmsg.new_tuple, relation,
                              &change->data.tp.newtuple->tuple, tupdesc);
         }
@@ -577,7 +553,7 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
         TupleDesc tupdesc = RelationGetDescr(relation);
         rmsg.n_old_tuple = tupdesc->natts;
         rmsg.old_tuple =
-            palloc(sizeof(Decoderbufs__DatumMessage) * tupdesc->natts);
+            palloc(sizeof(Decoderbufs__DatumMessage*) * tupdesc->natts);
         tuple_to_tuple_msg(rmsg.old_tuple, relation,
                            &change->data.tp.oldtuple->tuple, tupdesc);
       }

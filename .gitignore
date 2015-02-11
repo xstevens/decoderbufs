@@ -26,3 +26,6 @@
 .cproject
 .project
 .settings
+
+# Xcode
+*.xcodeproj
