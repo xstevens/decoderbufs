@@ -329,8 +329,10 @@ static bool geography_point_as_decoderbufs_point(Datum datum,
   getPoint2d_p(point->point, 0, &p2d);
 
   if (p != NULL) {
-    p->x = p2d.x;
-    p->y = p2d.y;
+    Decoderbufs__Point dp = DECODERBUFS__POINT__INIT;
+    dp.x = p2d.x;
+    dp.y = p2d.y;
+    memcpy(p, &dp, sizeof(dp));
     elog(DEBUG1, "Translating geography to point: (x,y) = (%f,%f)", p->x, p->y);
   }
 
@@ -406,9 +408,11 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
       break;
     case POINTOID:
       p = DatumGetPointP(datum);
+      Decoderbufs__Point dp = DECODERBUFS__POINT__INIT;
+      dp.x = p->x;
+      dp.y = p->y;
       datum_msg->datum_point = palloc(sizeof(Decoderbufs__Point));
-      datum_msg->datum_point->x = p->x;
-      datum_msg->datum_point->y = p->y;
+      memcpy(datum_msg->datum_point, &dp, sizeof(dp));
       break;
     default:
       // PostGIS uses dynamic OIDs so we need to check the type again here
