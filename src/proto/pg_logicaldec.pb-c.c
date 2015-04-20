@@ -218,11 +218,11 @@ static const ProtobufCFieldDescriptor decoderbufs__datum_message__field_descript
     3,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_INT32,
-    offsetof(Decoderbufs__DatumMessage, has_datum_int32),
+    offsetof(Decoderbufs__DatumMessage, datum_case),
     offsetof(Decoderbufs__DatumMessage, datum_int32),
     NULL,
     NULL,
-    0,             /* flags */
+    0 | PROTOBUF_C_FIELD_FLAG_ONEOF,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
@@ -230,11 +230,11 @@ static const ProtobufCFieldDescriptor decoderbufs__datum_message__field_descript
     4,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_INT64,
-    offsetof(Decoderbufs__DatumMessage, has_datum_int64),
+    offsetof(Decoderbufs__DatumMessage, datum_case),
     offsetof(Decoderbufs__DatumMessage, datum_int64),
     NULL,
     NULL,
-    0,             /* flags */
+    0 | PROTOBUF_C_FIELD_FLAG_ONEOF,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
@@ -242,11 +242,11 @@ static const ProtobufCFieldDescriptor decoderbufs__datum_message__field_descript
     5,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_FLOAT,
-    offsetof(Decoderbufs__DatumMessage, has_datum_float),
+    offsetof(Decoderbufs__DatumMessage, datum_case),
     offsetof(Decoderbufs__DatumMessage, datum_float),
     NULL,
     NULL,
-    0,             /* flags */
+    0 | PROTOBUF_C_FIELD_FLAG_ONEOF,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
@@ -254,11 +254,11 @@ static const ProtobufCFieldDescriptor decoderbufs__datum_message__field_descript
     6,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_DOUBLE,
-    offsetof(Decoderbufs__DatumMessage, has_datum_double),
+    offsetof(Decoderbufs__DatumMessage, datum_case),
     offsetof(Decoderbufs__DatumMessage, datum_double),
     NULL,
     NULL,
-    0,             /* flags */
+    0 | PROTOBUF_C_FIELD_FLAG_ONEOF,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
@@ -266,11 +266,11 @@ static const ProtobufCFieldDescriptor decoderbufs__datum_message__field_descript
     7,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_BOOL,
-    offsetof(Decoderbufs__DatumMessage, has_datum_bool),
+    offsetof(Decoderbufs__DatumMessage, datum_case),
     offsetof(Decoderbufs__DatumMessage, datum_bool),
     NULL,
     NULL,
-    0,             /* flags */
+    0 | PROTOBUF_C_FIELD_FLAG_ONEOF,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
@@ -278,11 +278,11 @@ static const ProtobufCFieldDescriptor decoderbufs__datum_message__field_descript
     8,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_STRING,
-    0,   /* quantifier_offset */
+    offsetof(Decoderbufs__DatumMessage, datum_case),
     offsetof(Decoderbufs__DatumMessage, datum_string),
     NULL,
     NULL,
-    0,             /* flags */
+    0 | PROTOBUF_C_FIELD_FLAG_ONEOF,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
@@ -290,11 +290,11 @@ static const ProtobufCFieldDescriptor decoderbufs__datum_message__field_descript
     9,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_BYTES,
-    offsetof(Decoderbufs__DatumMessage, has_datum_bytes),
+    offsetof(Decoderbufs__DatumMessage, datum_case),
     offsetof(Decoderbufs__DatumMessage, datum_bytes),
     NULL,
     NULL,
-    0,             /* flags */
+    0 | PROTOBUF_C_FIELD_FLAG_ONEOF,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
@@ -302,11 +302,11 @@ static const ProtobufCFieldDescriptor decoderbufs__datum_message__field_descript
     10,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_MESSAGE,
-    0,   /* quantifier_offset */
+    offsetof(Decoderbufs__DatumMessage, datum_case),
     offsetof(Decoderbufs__DatumMessage, datum_point),
     &decoderbufs__point__descriptor,
     NULL,
-    0,             /* flags */
+    0 | PROTOBUF_C_FIELD_FLAG_ONEOF,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
 };
@@ -342,13 +342,25 @@ const ProtobufCMessageDescriptor decoderbufs__datum_message__descriptor =
   (ProtobufCMessageInit) decoderbufs__datum_message__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor decoderbufs__row_message__field_descriptors[5] =
+static const ProtobufCFieldDescriptor decoderbufs__row_message__field_descriptors[6] =
 {
   {
-    "commit_time",
+    "transaction_id",
     1,
     PROTOBUF_C_LABEL_OPTIONAL,
-    PROTOBUF_C_TYPE_SINT64,
+    PROTOBUF_C_TYPE_UINT32,
+    offsetof(Decoderbufs__RowMessage, has_transaction_id),
+    offsetof(Decoderbufs__RowMessage, transaction_id),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "commit_time",
+    2,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_UINT64,
     offsetof(Decoderbufs__RowMessage, has_commit_time),
     offsetof(Decoderbufs__RowMessage, commit_time),
     NULL,
@@ -358,7 +370,7 @@ static const ProtobufCFieldDescriptor decoderbufs__row_message__field_descriptor
   },
   {
     "table",
-    2,
+    3,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_STRING,
     0,   /* quantifier_offset */
@@ -370,7 +382,7 @@ static const ProtobufCFieldDescriptor decoderbufs__row_message__field_descriptor
   },
   {
     "op",
-    3,
+    4,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_ENUM,
     offsetof(Decoderbufs__RowMessage, has_op),
@@ -382,7 +394,7 @@ static const ProtobufCFieldDescriptor decoderbufs__row_message__field_descriptor
   },
   {
     "new_tuple",
-    4,
+    5,
     PROTOBUF_C_LABEL_REPEATED,
     PROTOBUF_C_TYPE_MESSAGE,
     offsetof(Decoderbufs__RowMessage, n_new_tuple),
@@ -394,7 +406,7 @@ static const ProtobufCFieldDescriptor decoderbufs__row_message__field_descriptor
   },
   {
     "old_tuple",
-    5,
+    6,
     PROTOBUF_C_LABEL_REPEATED,
     PROTOBUF_C_TYPE_MESSAGE,
     offsetof(Decoderbufs__RowMessage, n_old_tuple),
@@ -406,16 +418,17 @@ static const ProtobufCFieldDescriptor decoderbufs__row_message__field_descriptor
   },
 };
 static const unsigned decoderbufs__row_message__field_indices_by_name[] = {
-  0,   /* field[0] = commit_time */
-  3,   /* field[3] = new_tuple */
-  4,   /* field[4] = old_tuple */
-  2,   /* field[2] = op */
-  1,   /* field[1] = table */
+  1,   /* field[1] = commit_time */
+  4,   /* field[4] = new_tuple */
+  5,   /* field[5] = old_tuple */
+  3,   /* field[3] = op */
+  2,   /* field[2] = table */
+  0,   /* field[0] = transaction_id */
 };
 static const ProtobufCIntRange decoderbufs__row_message__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 5 }
+  { 0, 6 }
 };
 const ProtobufCMessageDescriptor decoderbufs__row_message__descriptor =
 {
@@ -425,14 +438,14 @@ const ProtobufCMessageDescriptor decoderbufs__row_message__descriptor =
   "Decoderbufs__RowMessage",
   "decoderbufs",
   sizeof(Decoderbufs__RowMessage),
-  5,
+  6,
   decoderbufs__row_message__field_descriptors,
   decoderbufs__row_message__field_indices_by_name,
   1,  decoderbufs__row_message__number_ranges,
   (ProtobufCMessageInit) decoderbufs__row_message__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-const ProtobufCEnumValue decoderbufs__op__enum_values_by_number[3] =
+static const ProtobufCEnumValue decoderbufs__op__enum_values_by_number[3] =
 {
   { "INSERT", "DECODERBUFS__OP__INSERT", 0 },
   { "UPDATE", "DECODERBUFS__OP__UPDATE", 1 },
@@ -441,7 +454,7 @@ const ProtobufCEnumValue decoderbufs__op__enum_values_by_number[3] =
 static const ProtobufCIntRange decoderbufs__op__value_ranges[] = {
 {0, 0},{0, 3}
 };
-const ProtobufCEnumValueIndex decoderbufs__op__enum_values_by_name[3] =
+static const ProtobufCEnumValueIndex decoderbufs__op__enum_values_by_name[3] =
 {
   { "DELETE", 2 },
   { "INSERT", 0 },
