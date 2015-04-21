@@ -190,18 +190,33 @@ static void row_message_destroy(Decoderbufs__RowMessage *msg) {
     return;
   }
 
-  pfree(msg->table);
+  if (msg->table) {
+    pfree(msg->table);
+  }
+
   if (msg->n_new_tuple > 0) {
     for (int i = 0; i < msg->n_new_tuple; i++) {
       if (msg->new_tuple[i]) {
-        if (msg->new_tuple[i]->datum_string) {
-          pfree(msg->new_tuple[i]->datum_string);
-        } else if (msg->new_tuple[i]->has_datum_bytes) {
-          pfree(msg->new_tuple[i]->datum_bytes.data);
-          msg->new_tuple[i]->datum_bytes.data = NULL;
-          msg->new_tuple[i]->datum_bytes.len = 0;
-        } else if (msg->new_tuple[i]->datum_point) {
-          pfree(msg->new_tuple[i]->datum_point);
+        switch (msg->new_tuple[i]->datum_case) {
+          case DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_STRING:
+            if (msg->new_tuple[i]->datum_string) {
+              pfree(msg->new_tuple[i]->datum_string);
+            }
+            break;
+          case DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_BYTES:
+            if (msg->new_tuple[i]->datum_bytes.data) {
+              pfree(msg->new_tuple[i]->datum_bytes.data);
+              msg->new_tuple[i]->datum_bytes.data = NULL;
+              msg->new_tuple[i]->datum_bytes.len = 0;
+            }
+            break;
+          case DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_POINT:
+            if (msg->new_tuple[i]->datum_point) {
+              pfree(msg->new_tuple[i]->datum_point);
+            }
+            break;
+          default:
+            break;
         }
         pfree(msg->new_tuple[i]);
       }
@@ -211,14 +226,26 @@ static void row_message_destroy(Decoderbufs__RowMessage *msg) {
   if (msg->n_old_tuple > 0) {
     for (int i = 0; i < msg->n_old_tuple; i++) {
       if (msg->old_tuple[i]) {
-        if (msg->old_tuple[i]->datum_string) {
-          pfree(msg->old_tuple[i]->datum_string);
-        } else if (msg->old_tuple[i]->has_datum_bytes) {
-          pfree(msg->old_tuple[i]->datum_bytes.data);
-          msg->old_tuple[i]->datum_bytes.data = NULL;
-          msg->old_tuple[i]->datum_bytes.len = 0;
-        } else if (msg->old_tuple[i]->datum_point) {
-          pfree(msg->old_tuple[i]->datum_point);
+        switch (msg->old_tuple[i]->datum_case) {
+          case DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_STRING:
+            if (msg->old_tuple[i]->datum_string) {
+              pfree(msg->old_tuple[i]->datum_string);
+            }
+            break;
+          case DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_BYTES:
+            if (msg->old_tuple[i]->datum_bytes.data) {
+              pfree(msg->old_tuple[i]->datum_bytes.data);
+              msg->old_tuple[i]->datum_bytes.data = NULL;
+              msg->old_tuple[i]->datum_bytes.len = 0;
+            }
+            break;
+          case DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_POINT:
+            if (msg->old_tuple[i]->datum_point) {
+              pfree(msg->old_tuple[i]->datum_point);
+            }
+            break;
+          default:
+            break;
         }
         pfree(msg->old_tuple[i]);
       }
@@ -350,34 +377,27 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
   switch (typid) {
     case BOOLOID:
       datum_msg->datum_bool = DatumGetBool(datum);
-      datum_msg->has_datum_bool = true;
       break;
     case INT2OID:
       datum_msg->datum_int32 = DatumGetInt16(datum);
-      datum_msg->has_datum_int32 = true;
       break;
     case INT4OID:
       datum_msg->datum_int32 = DatumGetInt32(datum);
-      datum_msg->has_datum_int32 = true;
       break;
     case INT8OID:
     case OIDOID:
       datum_msg->datum_int64 = DatumGetInt64(datum);
-      datum_msg->has_datum_int64 = true;
       break;
     case FLOAT4OID:
       datum_msg->datum_float = DatumGetFloat4(datum);
-      datum_msg->has_datum_float = true;
       break;
     case FLOAT8OID:
       datum_msg->datum_double = DatumGetFloat8(datum);
-      datum_msg->has_datum_double = true;
       break;
     case NUMERICOID:
       num = DatumGetNumeric(datum);
       if (!numeric_is_nan(num)) {
         datum_msg->datum_double = numeric_to_double_no_overflow(num);
-        datum_msg->has_datum_double = true;
       }
       break;
     case CHAROID:
@@ -404,7 +424,6 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
       datum_msg->datum_bytes.data = palloc(size);
       memcpy(datum_msg->datum_bytes.data, (uint8_t *)VARDATA(valptr), size);
       datum_msg->datum_bytes.len = size;
-      datum_msg->has_datum_bytes = true;
       break;
     case POINTOID:
       p = DatumGetPointP(datum);
@@ -428,7 +447,6 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
         datum_msg->datum_bytes.data = palloc(size);
         memcpy(datum_msg->datum_bytes.data, (uint8_t *)output, size);
         datum_msg->datum_bytes.len = len;
-        datum_msg->has_datum_bytes = true;
       }
       break;
   }
@@ -509,6 +527,8 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
                            !OidIsValid(relation->rd_replidindex)));
 
   /* set common fields */
+  rmsg.transaction_id = txn->xid;
+  rmsg.has_transaction_id = true;
   rmsg.commit_time = TIMESTAMPTZ_TO_USEC_SINCE_EPOCH(txn->commit_time);
   rmsg.has_commit_time = true;
   rmsg.table = pstrdup(NameStr(class_form->relname));
