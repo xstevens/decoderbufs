@@ -607,14 +607,11 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
     }
     OutputPluginWrite(ctx, true);
   } else {
-    OutputPluginPrepareWrite(ctx, true);
     size_t psize = decoderbufs__row_message__get_packed_size(&rmsg);
     void *packed = palloc(psize);
     size_t ssize = decoderbufs__row_message__pack(&rmsg, packed);
-    uint64_t flen = htobe64(ssize);
-    /* frame encoding size */
-    appendBinaryStringInfo(ctx->out, (char *)&flen, sizeof(flen));
-    /* frame encoding payload */
+
+    OutputPluginPrepareWrite(ctx, true);
     appendBinaryStringInfo(ctx->out, packed, ssize);
     OutputPluginWrite(ctx, true);
 
