@@ -374,30 +374,38 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
   const char *output;
   Point *p;
   int size = 0;
+
   switch (typid) {
     case BOOLOID:
       datum_msg->datum_bool = DatumGetBool(datum);
+      datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_BOOL;
       break;
     case INT2OID:
       datum_msg->datum_int32 = DatumGetInt16(datum);
+      datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_INT32;
       break;
     case INT4OID:
       datum_msg->datum_int32 = DatumGetInt32(datum);
+      datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_INT32;
       break;
     case INT8OID:
     case OIDOID:
       datum_msg->datum_int64 = DatumGetInt64(datum);
+      datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_INT64;
       break;
     case FLOAT4OID:
       datum_msg->datum_float = DatumGetFloat4(datum);
+      datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_FLOAT;
       break;
     case FLOAT8OID:
       datum_msg->datum_double = DatumGetFloat8(datum);
+      datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_DOUBLE;
       break;
     case NUMERICOID:
       num = DatumGetNumeric(datum);
       if (!numeric_is_nan(num)) {
         datum_msg->datum_double = numeric_to_double_no_overflow(num);
+        datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_DOUBLE;
       }
       break;
     case CHAROID:
@@ -409,6 +417,7 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
     case UUIDOID:
       output = OidOutputFunctionCall(typoutput, datum);
       datum_msg->datum_string = pnstrdup(output, strlen(output));
+      datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_STRING;
       break;
     case TIMESTAMPOID:
     /*
@@ -417,11 +426,13 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
     case TIMESTAMPTZOID:
       output = timestamptz_to_str(DatumGetTimestampTz(datum));
       datum_msg->datum_string = pnstrdup(output, strlen(output));
+      datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_STRING;
       break;
     case BYTEAOID:
       valptr = DatumGetByteaPCopy(datum);
       size = VARSIZE(valptr) - VARHDRSZ;
       datum_msg->datum_bytes.data = palloc(size);
+      datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_BYTES;
       memcpy(datum_msg->datum_bytes.data, (uint8_t *)VARDATA(valptr), size);
       datum_msg->datum_bytes.len = size;
       break;
@@ -431,6 +442,7 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
       dp.x = p->x;
       dp.y = p->y;
       datum_msg->datum_point = palloc(sizeof(Decoderbufs__Point));
+      datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_POINT;
       memcpy(datum_msg->datum_point, &dp, sizeof(dp));
       break;
     default:
@@ -438,6 +450,7 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
       if (typid == geometry_oid || typid == geography_oid) {
         elog(DEBUG1, "Converting geography point to datum_point");
         datum_msg->datum_point = palloc(sizeof(Decoderbufs__Point));
+        datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_POINT;
         geography_point_as_decoderbufs_point(datum, datum_msg->datum_point);
       } else {
         elog(WARNING, "Encountered unknown typid: %d, using bytes", typid);
@@ -445,6 +458,7 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
         int len = strlen(output);
         size = sizeof(char) * len;
         datum_msg->datum_bytes.data = palloc(size);
+        datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_BYTES;
         memcpy(datum_msg->datum_bytes.data, (uint8_t *)output, size);
         datum_msg->datum_bytes.len = len;
       }
