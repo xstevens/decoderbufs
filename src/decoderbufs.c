@@ -55,7 +55,7 @@
 
 /* POSTGIS version define so it doesn't redef macros */
 #define POSTGIS_PGSQL_VERSION 94
-#include "libpgcommon/lwgeom_pg.h"
+#include "liblwgeom.h"
 
 PG_MODULE_MAGIC;
 
