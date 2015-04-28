@@ -55,7 +55,7 @@
 
 /* POSTGIS version define so it doesn't redef macros */
 #define POSTGIS_PGSQL_VERSION 94
-#include "libpgcommon/lwgeom_pg.h"
+#include "liblwgeom.h"
 
 PG_MODULE_MAGIC;
 
@@ -374,6 +374,7 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
   const char *output = NULL;
   Point *p = NULL;
   int size = 0;
+
   switch (typid) {
     case BOOLOID:
       datum_msg->datum_bool = DatumGetBool(datum);
@@ -431,6 +432,7 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
       valptr = DatumGetByteaPCopy(datum);
       size = VARSIZE(valptr) - VARHDRSZ;
       datum_msg->datum_bytes.data = palloc(size);
+      datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_BYTES;
       memcpy(datum_msg->datum_bytes.data, (uint8_t *)VARDATA(valptr), size);
       datum_msg->datum_bytes.len = size;
       datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_BYTES;
@@ -441,6 +443,7 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
       dp.x = p->x;
       dp.y = p->y;
       datum_msg->datum_point = palloc(sizeof(Decoderbufs__Point));
+      datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_POINT;
       memcpy(datum_msg->datum_point, &dp, sizeof(dp));
       datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_POINT;
       break;
@@ -449,6 +452,7 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
       if (typid == geometry_oid || typid == geography_oid) {
         elog(DEBUG1, "Converting geography point to datum_point");
         datum_msg->datum_point = palloc(sizeof(Decoderbufs__Point));
+        datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_POINT;
         geography_point_as_decoderbufs_point(datum, datum_msg->datum_point);
         datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_POINT;
       } else {
@@ -457,6 +461,7 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
         int len = strlen(output);
         size = sizeof(char) * len;
         datum_msg->datum_bytes.data = palloc(size);
+        datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_BYTES;
         memcpy(datum_msg->datum_bytes.data, (uint8_t *)output, size);
         datum_msg->datum_bytes.len = len;
         datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_BYTES;
@@ -620,14 +625,11 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
     }
     OutputPluginWrite(ctx, true);
   } else {
-    OutputPluginPrepareWrite(ctx, true);
     size_t psize = decoderbufs__row_message__get_packed_size(&rmsg);
     void *packed = palloc(psize);
     size_t ssize = decoderbufs__row_message__pack(&rmsg, packed);
-    uint64_t flen = htobe64(ssize);
-    /* frame encoding size */
-    appendBinaryStringInfo(ctx->out, (char *)&flen, sizeof(flen));
-    /* frame encoding payload */
+
+    OutputPluginPrepareWrite(ctx, true);
     appendBinaryStringInfo(ctx->out, packed, ssize);
     OutputPluginWrite(ctx, true);
 
