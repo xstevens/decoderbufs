@@ -7,7 +7,7 @@ PG_CPPFLAGS += -std=c11 $(PROTOBUF_C_CFLAGS) -I/usr/local/include
 SHLIB_LINK  += $(PROTOBUF_C_LDFLAGS) -L/usr/local/lib -llwgeom
 
 MODULE_big   = $(patsubst src/%.c,%,$(wildcard src/*.c))
-OBJS         = src/decoderbufs.o src/proto/pg_logicaldec.pb-c.o
+OBJS         = src/decoderbufs.o src/proto/pg_logicaldec.pb-c.o src/protobuf-c-text.o
 
 PG_CONFIG = pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)

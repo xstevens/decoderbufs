@@ -52,6 +52,8 @@
 #include "utils/typcache.h"
 #include "utils/uuid.h"
 #include "proto/pg_logicaldec.pb-c.h"
+#include "protobuf-c/protobuf-c.h"
+#include "protobuf-c-text.h"
 
 /* POSTGIS version define so it doesn't redef macros */
 #define POSTGIS_PGSQL_VERSION 94
@@ -253,6 +255,7 @@ static void row_message_destroy(Decoderbufs__RowMessage *msg) {
     pfree(msg->old_tuple);
   }
 }
+
 
 /* only used for debug-mode (currently not all OIDs are currently supported) */
 static void print_tuple_msg(StringInfo out, Decoderbufs__DatumMessage **tup,
@@ -602,22 +605,7 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 
   if (data->debug_mode) {
     OutputPluginPrepareWrite(ctx, true);
-    if (rmsg.has_commit_time)
-      appendStringInfo(ctx->out, "commit_time[%" PRId64 "]", rmsg.commit_time);
-    if (rmsg.table)
-      appendStringInfo(ctx->out, ", table[%s]", rmsg.table);
-    if (rmsg.has_op)
-      appendStringInfo(ctx->out, ", op[%d]", rmsg.op);
-    if (rmsg.old_tuple) {
-      appendStringInfo(ctx->out, "\nOLD TUPLE: \n");
-      print_tuple_msg(ctx->out, rmsg.old_tuple, rmsg.n_old_tuple);
-      appendStringInfo(ctx->out, "\n");
-    }
-    if (rmsg.new_tuple) {
-      appendStringInfo(ctx->out, "\nNEW TUPLE: \n");
-      print_tuple_msg(ctx->out, rmsg.new_tuple, rmsg.n_new_tuple);
-      appendStringInfo(ctx->out, "\n");
-    }
+    protobuf_c_text_to_string_internal(ctx->out, 0, (ProtobufCMessage*)&rmsg, &decoderbufs__row_message__descriptor);
     OutputPluginWrite(ctx, true);
   } else {
     OutputPluginPrepareWrite(ctx, true);
