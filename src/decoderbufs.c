@@ -52,12 +52,10 @@
 #include "utils/typcache.h"
 #include "utils/uuid.h"
 #include "proto/pg_logicaldec.pb-c.h"
-#include "protobuf-c/protobuf-c.h"
-#include "protobuf-c-text.h"
 
 /* POSTGIS version define so it doesn't redef macros */
 #define POSTGIS_PGSQL_VERSION 94
-#include "libpgcommon/lwgeom_pg.h"
+#include "liblwgeom.h"
 
 PG_MODULE_MAGIC;
 
@@ -256,63 +254,84 @@ static void row_message_destroy(Decoderbufs__RowMessage *msg) {
   }
 }
 
-
-/* only used for debug-mode (currently not all OIDs are currently supported) */
-static void print_tuple_msg(StringInfo out, Decoderbufs__DatumMessage **tup,
-                            size_t n) {
+/* print tuple datums (only used for debug-mode) */
+static void print_tuple_datums(StringInfo out, Decoderbufs__DatumMessage **tup,
+                               size_t n) {
   if (tup) {
     for (int i = 0; i < n; i++) {
       Decoderbufs__DatumMessage *dmsg = tup[i];
+
       if (dmsg->column_name)
         appendStringInfo(out, "column_name[%s]", dmsg->column_name);
-      if (dmsg->has_column_type) {
+
+      if (dmsg->has_column_type)
         appendStringInfo(out, ", column_type[%" PRId64 "]", dmsg->column_type);
-        switch (dmsg->column_type) {
-          case INT2OID:
-          case INT4OID:
-            appendStringInfo(out, ", datum[%d]", dmsg->datum_int32);
-            break;
-          case INT8OID:
-            appendStringInfo(out, ", datum[%" PRId64 "]", dmsg->datum_int64);
-            break;
-          case FLOAT4OID:
-            appendStringInfo(out, ", datum[%f]", dmsg->datum_float);
-            break;
-          case FLOAT8OID:
-          case NUMERICOID:
-            appendStringInfo(out, ", datum[%f]", dmsg->datum_double);
-            break;
-          case CHAROID:
-          case VARCHAROID:
-          case BPCHAROID:
-          case TEXTOID:
-          case JSONOID:
-          case XMLOID:
-          case UUIDOID:
-          case TIMESTAMPOID:
-          case TIMESTAMPTZOID:
-            appendStringInfo(out, ", datum[%s]", dmsg->datum_string);
-            break;
-          case POINTOID:
-            appendStringInfo(out, ", datum[POINT(%f, %f)]",
-                             dmsg->datum_point->x, dmsg->datum_point->y);
-            break;
-          default:
-            if (dmsg->column_type == geometry_oid &&
-                dmsg->datum_point != NULL) {
-              appendStringInfo(out, ", datum[GEOMETRY(POINT(%f,%f))]",
-                               dmsg->datum_point->x, dmsg->datum_point->y);
-            } else if (dmsg->column_type == geography_oid &&
-                       dmsg->datum_point != NULL) {
-              appendStringInfo(out, ", datum[GEOGRAPHY(POINT(%f,%f))]",
-                               dmsg->datum_point->x, dmsg->datum_point->y);
-            }
-            break;
-        }
-        appendStringInfo(out, "\n");
+
+      switch (dmsg->datum_case) {
+        case DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_INT32:
+          appendStringInfo(out, ", datum[%d]", dmsg->datum_int32);
+          break;
+        case DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_INT64:
+          appendStringInfo(out, ", datum[%" PRId64 "]", dmsg->datum_int64);
+          break;
+        case DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_FLOAT:
+          appendStringInfo(out, ", datum[%f]", dmsg->datum_float);
+          break;
+        case DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_DOUBLE:
+          appendStringInfo(out, ", datum[%f]", dmsg->datum_double);
+          break;
+        case DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_BOOL:
+          appendStringInfo(out, ", datum[%d]", dmsg->datum_bool);
+          break;
+        case DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_STRING:
+          appendStringInfo(out, ", datum[%s]", dmsg->datum_string);
+          break;
+        case DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_BYTES:
+          break;
+        case DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_POINT:
+          appendStringInfo(out, ", datum[POINT(%f, %f)]",
+                           dmsg->datum_point->x, dmsg->datum_point->y);
+          break;
+        case DECODERBUFS__DATUM_MESSAGE__DATUM__NOT_SET:
+          // intentional fall-through
+        default:
+          appendStringInfo(out, ", datum[!NOT SET!]");
+          break;
       }
+      appendStringInfo(out, "\n");
     }
   }
+}
+
+/* print a row message (only used for debug-mode) */
+static void print_row_msg(StringInfo out, Decoderbufs__RowMessage *rmsg) {
+  if (!rmsg)
+    return;
+
+  if (rmsg->has_transaction_id)
+    appendStringInfo(out, "txid[%d]", rmsg->transaction_id);
+
+  if (rmsg->has_commit_time)
+    appendStringInfo(out, ", commit_time[%" PRId64 "]", rmsg->commit_time);
+
+  if (rmsg->table)
+    appendStringInfo(out, ", table[%s]", rmsg->table);
+
+  if (rmsg->has_op)
+    appendStringInfo(out, ", op[%d]", rmsg->op);
+
+  if (rmsg->old_tuple) {
+    appendStringInfo(out, "\nOLD TUPLE: \n");
+    print_tuple_datums(out, rmsg->old_tuple, rmsg->n_old_tuple);
+    appendStringInfo(out, "\n");
+  }
+
+  if (rmsg->new_tuple) {
+    appendStringInfo(out, "\nNEW TUPLE: \n");
+    print_tuple_datums(out, rmsg->new_tuple, rmsg->n_new_tuple);
+    appendStringInfo(out, "\n");
+  }
+
 }
 
 /* this doesn't seem to be available in the public api (unfortunate) */
@@ -603,25 +622,20 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
       break;
   }
 
+  /* write msg */
+  OutputPluginPrepareWrite(ctx, true);
   if (data->debug_mode) {
-    OutputPluginPrepareWrite(ctx, true);
-    protobuf_c_text_to_string_internal(ctx->out, 0, (ProtobufCMessage*)&rmsg, &decoderbufs__row_message__descriptor);
-    OutputPluginWrite(ctx, true);
+    //protobuf_c_text_to_string(ctx->out, (ProtobufCMessage*)&rmsg);
+    print_row_msg(ctx->out, &rmsg);
   } else {
-    OutputPluginPrepareWrite(ctx, true);
     size_t psize = decoderbufs__row_message__get_packed_size(&rmsg);
     void *packed = palloc(psize);
     size_t ssize = decoderbufs__row_message__pack(&rmsg, packed);
-    uint64_t flen = htobe64(ssize);
-    /* frame encoding size */
-    appendBinaryStringInfo(ctx->out, (char *)&flen, sizeof(flen));
-    /* frame encoding payload */
     appendBinaryStringInfo(ctx->out, packed, ssize);
-    OutputPluginWrite(ctx, true);
-
     /* free packed buffer */
     pfree(packed);
   }
+  OutputPluginWrite(ctx, true);
 
   /* cleanup msg */
   row_message_destroy(&rmsg);

@@ -5,7 +5,7 @@ A PostgreSQL logical decoder output plugin to deliver data as Protocol Buffers
 
 # decoderbufs
 
-Version: 0.0.1
+Version: 0.1.0
 
 **decoderbufs** is a PostgreSQL logical decoder output plugin to deliver data as Protocol Buffers.
 
