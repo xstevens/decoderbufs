@@ -530,7 +530,7 @@ static int tuple_to_tuple_msg(Decoderbufs__DatumMessage **tmsg,
     datum_msg.column_name = quote_identifier(NameStr(attr->attname));
 
     /* set datum from tuple */
-    origval = fastgetattr(tuple, natt + 1, tupdesc, &isnull);
+    origval = heap_getattr(tuple, natt + 1, tupdesc, &isnull);
 
     /* get output function */
     datum_msg.column_type = attr->atttypid;
