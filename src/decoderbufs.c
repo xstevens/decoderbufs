@@ -527,7 +527,7 @@ static int tuple_to_tuple_msg(Decoderbufs__DatumMessage **tmsg,
     Decoderbufs__DatumMessage datum_msg = DECODERBUFS__DATUM_MESSAGE__INIT;
 
     /* set the column name */
-    datum_msg.column_name = quote_identifier(NameStr(attr->attname));
+    datum_msg.column_name = NameStr(attr->attname);
 
     /* set datum from tuple */
     origval = heap_getattr(tuple, natt + 1, tupdesc, &isnull);
