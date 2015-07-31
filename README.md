@@ -81,12 +81,8 @@ And restart PostgreSQL.
     select * from pg_replication_slots where slot_type = 'logical';
 
 If you're performing an UPDATE/DELETE on your table and you don't see results for those operations from logical decoding, make sure you have set [REPLICA IDENTITY](http://www.postgresql.org/docs/9.4/static/sql-altertable.html#SQL-CREATETABLE-REPLICA-IDENTITY) appropriately for your use case.
-
-The binary format uses simple frame encoding, which uses an 8-byte length (uint64\_t) followed by that number of bytes for the Protocol Buffer payload. The easy way to test check this out is to use _pg\_recvlogical_ like so:
-
-    pg_recvlogical -h localhost -d <yourdb> -U <youruser> -w -S decoderbufs_demo -P decoderbufs -f decoderbuf.frames -s 1 -F 1 --start
     
-For something a bit more useful, I am looking to implement a custom PostgreSQL logical replication client that publishes to something like Apache Kafka.
+For consuming the binary format, I have implemented a custom PostgreSQL logical replication client that publishes to Apache Kafka. I'm hoping to clean that up a bit and open source the project.
           
 ### Type Mappings
 
