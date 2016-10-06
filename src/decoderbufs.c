@@ -51,6 +51,9 @@
 #include "utils/syscache.h"
 #include "utils/typcache.h"
 #include "utils/uuid.h"
+#include "utils/date.h"
+#include "utils/datetime.h"
+#include "miscadmin.h"
 #include "proto/pg_logicaldec.pb-c.h"
 
 #ifdef WITH_POSTGIS
@@ -407,6 +410,7 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
   const char *output = NULL;
   Point *p = NULL;
   int size = 0;
+
   switch (typid) {
     case BOOLOID:
       datum_msg->datum_bool = DatumGetBool(datum);
@@ -451,14 +455,73 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
       datum_msg->datum_string = pnstrdup(output, strlen(output));
       datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_STRING;
       break;
+    case DATEOID:
+      // from src/backend/utils/adt/json.c
+      {
+        DateADT date;
+        struct pg_tm tm;
+        char buf[MAXDATELEN + 1];
+
+        date = DatumGetDateADT(datum);
+        /* Same as date_out(), but forcing DateStyle */
+        if (DATE_NOT_FINITE(date))
+          EncodeSpecialDate(date, buf);
+        else
+        {
+          j2date(date + POSTGRES_EPOCH_JDATE,
+              &(tm.tm_year), &(tm.tm_mon), &(tm.tm_mday));
+          EncodeDateOnly(&tm, USE_XSD_DATES, buf);
+        }
+        datum_msg->datum_string = pnstrdup(buf, strlen(buf));
+        datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_STRING;
+      }
+      break;
     case TIMESTAMPOID:
-    /*
-     * THIS FALLTHROUGH IS MAKING THE ASSUMPTION WE ARE ON UTC
-     */
+      // from src/backend/utils/adt/json.c
+      {
+        Timestamp timestamp;
+        struct pg_tm tm;
+        fsec_t fsec;
+        char buf[MAXDATELEN + 1];
+
+        timestamp = DatumGetTimestamp(datum);
+        /* Same as timestamp_out(), but forcing DateStyle */
+        if (TIMESTAMP_NOT_FINITE(timestamp))
+          EncodeSpecialTimestamp(timestamp, buf);
+        else if (timestamp2tm(timestamp, NULL, &tm, &fsec, NULL, NULL) == 0)
+          EncodeDateTime(&tm, fsec, false, 0, NULL, USE_XSD_DATES, buf);
+        else
+          ereport(ERROR,
+              (errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE),
+               errmsg("timestamp out of range")));
+
+        datum_msg->datum_string = pnstrdup(buf, strlen(buf));
+        datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_STRING;
+      }
     case TIMESTAMPTZOID:
-      output = timestamptz_to_str(DatumGetTimestampTz(datum));
-      datum_msg->datum_string = pnstrdup(output, strlen(output));
-      datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_STRING;
+      // from src/backend/utils/adt/json.c
+      {
+        TimestampTz timestamp;
+        struct pg_tm tm;
+        int tz;
+        fsec_t fsec;
+        const char *tzn = NULL;
+        char buf[MAXDATELEN + 1];
+
+        timestamp = DatumGetTimestampTz(datum);
+        /* Same as timestamptz_out(), but forcing DateStyle */
+        if (TIMESTAMP_NOT_FINITE(timestamp))
+          EncodeSpecialTimestamp(timestamp, buf);
+        else if (timestamp2tm(timestamp, &tz, &tm, &fsec, &tzn, NULL) == 0)
+          EncodeDateTime(&tm, fsec, true, tz, tzn, USE_XSD_DATES, buf);
+        else
+          ereport(ERROR,
+              (errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE),
+               errmsg("timestamp out of range")));
+
+        datum_msg->datum_string = pnstrdup(buf, strlen(buf));
+        datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_STRING;
+      }
       break;
     case BYTEAOID:
       valptr = DatumGetByteaPCopy(datum);

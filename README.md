@@ -105,6 +105,7 @@ The following table shows how current PostgreSQL type OIDs are mapped to which d
 | JSONOID             | datum_string  |
 | XMLOID              | datum_string  |
 | UUIDOID             | datum_string  |
+| DATEOID             | datum_string  |
 | TIMESTAMPOID        | datum_string  |
 | TIMESTAMPTZOID      | datum_string  |
 | BYTEAOID            | datum_bytes   |
