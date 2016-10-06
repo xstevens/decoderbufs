@@ -17,3 +17,8 @@ OBJS = src/decoderbufs.o src/proto/pg_logicaldec.pb-c.o
 PG_CONFIG = pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
+
+.PHONY: proto
+
+proto:
+	protoc-c --c_out=src/ proto/pg_logicaldec.proto
