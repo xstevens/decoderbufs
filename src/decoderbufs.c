@@ -53,9 +53,11 @@
 #include "utils/uuid.h"
 #include "proto/pg_logicaldec.pb-c.h"
 
+#ifdef WITH_POSTGIS
 /* POSTGIS version define so it doesn't redef macros */
 #define POSTGIS_PGSQL_VERSION 94
 #include "liblwgeom.h"
+#endif
 
 PG_MODULE_MAGIC;
 
@@ -75,9 +77,11 @@ typedef struct {
   bool debug_mode;
 } DecoderData;
 
+#ifdef WITH_POSTGIS
 /* GLOBALs for PostGIS dynamic OIDs */
 Oid geometry_oid = InvalidOid;
 Oid geography_oid = InvalidOid;
+#endif
 
 /* these must be available to pg_dlsym() */
 extern void _PG_init(void);
@@ -163,6 +167,7 @@ static void pg_decode_shutdown(LogicalDecodingContext *ctx) {
 /* BEGIN callback */
 static void pg_decode_begin_txn(LogicalDecodingContext *ctx,
                                 ReorderBufferTXN *txn) {
+#ifdef WITH_POSTGIS
   // set PostGIS geometry type id (these are dynamic)
   // TODO: Figure out how to make sure we get the typid's from postgis extension namespace
   if (geometry_oid == InvalidOid) {
@@ -177,6 +182,7 @@ static void pg_decode_begin_txn(LogicalDecodingContext *ctx,
       elog(DEBUG1, "PostGIS geometry type detected: %u", geography_oid);
     }
   }
+#endif
 }
 
 /* COMMIT callback */
@@ -357,6 +363,7 @@ static double numeric_to_double_no_overflow(Numeric num) {
   return val;
 }
 
+#ifdef WITH_POSTGIS
 static bool geography_point_as_decoderbufs_point(Datum datum,
                                                  Decoderbufs__Point *p) {
   GSERIALIZED *geom;
@@ -387,6 +394,7 @@ static bool geography_point_as_decoderbufs_point(Datum datum,
 
   return true;
 }
+#endif
 
 /* set a datum value based on its OID specified by typid */
 static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
@@ -467,6 +475,7 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
       datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_POINT;
       break;
     default:
+#ifdef WITH_POSTGIS
       // PostGIS uses dynamic OIDs so we need to check the type again here
       if (typid == geometry_oid || typid == geography_oid) {
         elog(DEBUG1, "Converting geography point to datum_point");
@@ -474,6 +483,7 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
         geography_point_as_decoderbufs_point(datum, datum_msg->datum_point);
         datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_POINT;
       } else {
+#endif
         elog(WARNING, "Encountered unknown typid: %d, using bytes", typid);
         output = OidOutputFunctionCall(typoutput, datum);
         int len = strlen(output);
@@ -482,7 +492,9 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
         memcpy(datum_msg->datum_bytes.data, (uint8_t *)output, size);
         datum_msg->datum_bytes.len = len;
         datum_msg->datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_BYTES;
+#ifdef WITH_POSTGIS
       }
+#endif
       break;
   }
 }
