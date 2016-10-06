@@ -503,10 +503,12 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
 }
 
 /* convert a PG tuple to an array of DatumMessage(s) */
-static void tuple_to_tuple_msg(Decoderbufs__DatumMessage **tmsg,
+static int tuple_to_tuple_msg(Decoderbufs__DatumMessage **tmsg,
                                Relation relation, HeapTuple tuple,
                                TupleDesc tupdesc) {
   int natt;
+  int skipped = 0;
+  int i = 0;
 
   /* build column names and values */
   for (natt = 0; natt < tupdesc->natts; natt++) {
@@ -518,6 +520,7 @@ static void tuple_to_tuple_msg(Decoderbufs__DatumMessage **tmsg,
 
     /* skip dropped columns and system columns */
     if (attr->attisdropped || attr->attnum < 0) {
+      skipped++;
       continue;
     }
 
@@ -549,9 +552,11 @@ static void tuple_to_tuple_msg(Decoderbufs__DatumMessage **tmsg,
       }
     }
 
-    tmsg[natt] = palloc(sizeof(datum_msg));
-    memcpy(tmsg[natt], &datum_msg, sizeof(datum_msg));
+    tmsg[i] = palloc(sizeof(datum_msg));
+    memcpy(tmsg[i], &datum_msg, sizeof(datum_msg));
+    i++;
   }
+  return skipped;
 }
 
 /* callback for individual changed tuples */
@@ -595,7 +600,7 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
         rmsg.n_new_tuple = tupdesc->natts;
         rmsg.new_tuple =
             palloc(sizeof(Decoderbufs__DatumMessage*) * tupdesc->natts);
-        tuple_to_tuple_msg(rmsg.new_tuple, relation,
+        rmsg.n_new_tuple -= tuple_to_tuple_msg(rmsg.new_tuple, relation,
                            &change->data.tp.newtuple->tuple, tupdesc);
       }
       break;
@@ -608,7 +613,7 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
           rmsg.n_old_tuple = tupdesc->natts;
           rmsg.old_tuple =
               palloc(sizeof(Decoderbufs__DatumMessage*) * tupdesc->natts);
-          tuple_to_tuple_msg(rmsg.old_tuple, relation,
+          rmsg.n_old_tuple -= tuple_to_tuple_msg(rmsg.old_tuple, relation,
                              &change->data.tp.oldtuple->tuple, tupdesc);
         }
         if (change->data.tp.newtuple != NULL) {
@@ -616,7 +621,7 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
           rmsg.n_new_tuple = tupdesc->natts;
           rmsg.new_tuple =
               palloc(sizeof(Decoderbufs__DatumMessage*) * tupdesc->natts);
-          tuple_to_tuple_msg(rmsg.new_tuple, relation,
+          rmsg.n_new_tuple -= tuple_to_tuple_msg(rmsg.new_tuple, relation,
                              &change->data.tp.newtuple->tuple, tupdesc);
         }
       }
@@ -630,7 +635,7 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
         rmsg.n_old_tuple = tupdesc->natts;
         rmsg.old_tuple =
             palloc(sizeof(Decoderbufs__DatumMessage*) * tupdesc->natts);
-        tuple_to_tuple_msg(rmsg.old_tuple, relation,
+        rmsg.n_old_tuple -= tuple_to_tuple_msg(rmsg.old_tuple, relation,
                            &change->data.tp.oldtuple->tuple, tupdesc);
       }
       break;
