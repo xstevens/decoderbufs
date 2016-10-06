@@ -34,6 +34,7 @@ message DatumMessage {
 
 message RowMessage {
     optional uint32 transaction_id = 1;
+    optional uint64 log_position = 7;
     optional uint64 commit_time = 2;
     optional string table = 3;
     optional Op op = 4;

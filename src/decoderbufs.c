@@ -317,6 +317,9 @@ static void print_row_msg(StringInfo out, Decoderbufs__RowMessage *rmsg) {
   if (rmsg->has_transaction_id)
     appendStringInfo(out, "txid[%d]", rmsg->transaction_id);
 
+  if (rmsg->has_log_position)
+    appendStringInfo(out, ", lsn[%ld]", rmsg->log_position);
+
   if (rmsg->has_commit_time)
     appendStringInfo(out, ", commit_time[%" PRId64 "]", rmsg->commit_time);
 
@@ -576,6 +579,8 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
   /* set common fields */
   rmsg.transaction_id = txn->xid;
   rmsg.has_transaction_id = true;
+  rmsg.log_position = txn->end_lsn;
+  rmsg.has_log_position = true;
   rmsg.commit_time = TIMESTAMPTZ_TO_USEC_SINCE_EPOCH(txn->commit_time);
   rmsg.has_commit_time = true;
   rmsg.table = pstrdup(NameStr(class_form->relname));

@@ -82,6 +82,8 @@ struct  _Decoderbufs__RowMessage
   ProtobufCMessage base;
   protobuf_c_boolean has_transaction_id;
   uint32_t transaction_id;
+  protobuf_c_boolean has_log_position;
+  uint64_t log_position;
   protobuf_c_boolean has_commit_time;
   uint64_t commit_time;
   char *table;
@@ -94,7 +96,7 @@ struct  _Decoderbufs__RowMessage
 };
 #define DECODERBUFS__ROW_MESSAGE__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&decoderbufs__row_message__descriptor) \
-    , 0,0, 0,0, NULL, 0,0, 0,NULL, 0,NULL }
+    , 0,0, 0,0, 0,0, NULL, 0,0, 0,NULL, 0,NULL }
 
 
 /* Decoderbufs__Point methods */
