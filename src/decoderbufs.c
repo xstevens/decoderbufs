@@ -449,6 +449,7 @@ static void set_datum_value(Decoderbufs__DatumMessage *datum_msg, Oid typid,
     case BPCHAROID:
     case TEXTOID:
     case JSONOID:
+    case JSONBOID:
     case XMLOID:
     case UUIDOID:
       output = OidOutputFunctionCall(typoutput, datum);
