@@ -34,12 +34,14 @@ typedef enum _Decoderbufs__Op {
 struct  _Decoderbufs__Point
 {
   ProtobufCMessage base;
+  protobuf_c_boolean has_x;
   double x;
+  protobuf_c_boolean has_y;
   double y;
 };
 #define DECODERBUFS__POINT__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&decoderbufs__point__descriptor) \
-    , 0, 0 }
+    , 0,0, 0,0 }
 
 
 typedef enum {

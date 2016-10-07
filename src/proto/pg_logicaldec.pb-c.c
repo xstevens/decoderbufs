@@ -141,9 +141,9 @@ static const ProtobufCFieldDescriptor decoderbufs__point__field_descriptors[2] =
   {
     "x",
     1,
-    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_DOUBLE,
-    0,   /* quantifier_offset */
+    offsetof(Decoderbufs__Point, has_x),
     offsetof(Decoderbufs__Point, x),
     NULL,
     NULL,
@@ -153,9 +153,9 @@ static const ProtobufCFieldDescriptor decoderbufs__point__field_descriptors[2] =
   {
     "y",
     2,
-    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_DOUBLE,
-    0,   /* quantifier_offset */
+    offsetof(Decoderbufs__Point, has_y),
     offsetof(Decoderbufs__Point, y),
     NULL,
     NULL,
