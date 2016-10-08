@@ -31,6 +31,7 @@
 #define htobe64(x) OSSwapHostToBigInt64(x)
 #endif
 #include <inttypes.h>
+#include <zlib.h>
 
 #include "postgres.h"
 #include "funcapi.h"
@@ -717,7 +718,12 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
     size_t psize = decoderbufs__row_message__get_packed_size(&rmsg);
     void *packed = palloc(psize);
     size_t ssize = decoderbufs__row_message__pack(&rmsg, packed);
+
+    uint32_t crc = htobe32(crc32(crc32(0L, Z_NULL, 0), packed, ssize));
+    appendBinaryStringInfo(ctx->out, (void *)(&crc), sizeof(crc));
+
     appendBinaryStringInfo(ctx->out, packed, ssize);
+
     /* free packed buffer */
     pfree(packed);
   }
