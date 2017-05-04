@@ -5,14 +5,14 @@ A PostgreSQL logical decoder output plugin to deliver data as Protocol Buffers
 
 # decoderbufs
 
-Version: 0.1.0
+Version: 0.2.0
 
 **decoderbufs** is a PostgreSQL logical decoder output plugin to deliver data as Protocol Buffers.
 
 **decoderbufs** is released under the MIT license (See LICENSE file).
 
 **Shoutouts:**
-- [The PostgreSQL Team](https://postgresql.org) for adding [logical decoding](http://www.postgresql.org/docs/9.4/static/logicaldecoding.html) support. This is a immensely useful feature.
+- [The PostgreSQL Team](https://postgresql.org) for adding [logical decoding](http://www.postgresql.org/docs/9.6/static/logicaldecoding.html) support. This is a immensely useful feature.
 - [Michael Paquier](https://github.com/michaelpq) for his [decoder_raw](https://github.com/michaelpq/pg_plugins/tree/master/decoder_raw) 
 project and blog posts as a guide to teach myself how to write a PostgreSQL logical decoder output plugin.
 - [Martin Kleppmann](https://github.com/ept) for making me aware that PostgreSQL was working on logical decoding.
@@ -22,8 +22,8 @@ project and blog posts as a guide to teach myself how to write a PostgreSQL logi
 This code is built with the following assumptions.  You may get mixed results if you deviate from these versions.
 
 * [PostgreSQL](http://www.postgresql.org) 9.4+
-* [Protocol Buffers](https://developers.google.com/protocol-buffers) 2.6.1
-* [protobuf-c](https://github.com/protobuf-c/protobuf-c) 1.1.0
+* [Protocol Buffers](https://developers.google.com/protocol-buffers) 3.x
+* [protobuf-c](https://github.com/protobuf-c/protobuf-c) 1.2.x
 * [PostGIS](http://postgis.net) 2.1.x
 
 ### Requirements
@@ -37,7 +37,7 @@ This code is built with the following assumptions.  You may get mixed results if
 To build you will need to install PostgreSQL (for pg_config) and PostgreSQL server development packages. On Debian 
 based distributions you can usually do something like this:
 
-    apt-get install -y postgresql postgresql-server-dev-9.4
+    apt-get install -y postgresql postgresql-server-dev-9.6
     
 You will also need to make sure that protobuf-c and it's header files have been installed. See their Github 
 page for further details.
@@ -80,7 +80,7 @@ And restart PostgreSQL.
     -- check the WAL position of logical replicators
     select * from pg_replication_slots where slot_type = 'logical';
 
-If you're performing an UPDATE/DELETE on your table and you don't see results for those operations from logical decoding, make sure you have set [REPLICA IDENTITY](http://www.postgresql.org/docs/9.4/static/sql-altertable.html#SQL-CREATETABLE-REPLICA-IDENTITY) appropriately for your use case.
+If you're performing an UPDATE/DELETE on your table and you don't see results for those operations from logical decoding, make sure you have set [REPLICA IDENTITY](http://www.postgresql.org/docs/9.6/static/sql-altertable.html#SQL-CREATETABLE-REPLICA-IDENTITY) appropriately for your use case.
     
 For consuming the binary format, I have implemented a custom PostgreSQL logical replication client that publishes to Apache Kafka. I'm hoping to clean that up a bit and open source the project.
           
