@@ -25,6 +25,7 @@ message DatumMessage {
 		string datum_string = 8;
 		bytes datum_bytes = 9;
 		Point datum_point = 10;
+		bool datum_unchanged = 11;
 	}
 }
 
