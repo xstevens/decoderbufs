@@ -608,8 +608,8 @@ static int tuple_to_tuple_msg(Decoderbufs__DatumMessage **tmsg,
     getTypeOutputInfo(attr->atttypid, &typoutput, &typisvarlena);
     if (!isnull) {
       if (typisvarlena && VARATT_IS_EXTERNAL_ONDISK(origval)) {
-        // TODO: Is there a way we can handle this?
-        elog(WARNING, "Not handling external on disk varlena at the moment.");
+        datum_msg.datum_unchanged = true;
+        datum_msg.datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_UNCHANGED;
       } else if (!typisvarlena) {
         set_datum_value(&datum_msg, attr->atttypid, typoutput, origval);
       } else {
