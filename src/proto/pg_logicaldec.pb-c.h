@@ -54,6 +54,7 @@ typedef enum {
   DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_STRING = 8,
   DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_BYTES = 9,
   DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_POINT = 10,
+  DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_UNCHANGED = 11,
 } Decoderbufs__DatumMessage__DatumCase;
 
 struct  _Decoderbufs__DatumMessage
@@ -72,6 +73,7 @@ struct  _Decoderbufs__DatumMessage
     char *datum_string;
     ProtobufCBinaryData datum_bytes;
     Decoderbufs__Point *datum_point;
+    protobuf_c_boolean datum_unchanged;
   };
 };
 #define DECODERBUFS__DATUM_MESSAGE__INIT \
