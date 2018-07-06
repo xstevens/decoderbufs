@@ -57,6 +57,7 @@
 #include "utils/datetime.h"
 #include "miscadmin.h"
 #include "proto/pg_logicaldec.pb-c.h"
+#include "access/tuptoaster.h"
 
 #ifdef WITH_POSTGIS
 /* POSTGIS version define so it doesn't redef macros */
@@ -607,9 +608,8 @@ static int tuple_to_tuple_msg(Decoderbufs__DatumMessage **tmsg,
     /* query output function */
     getTypeOutputInfo(attr->atttypid, &typoutput, &typisvarlena);
     if (!isnull) {
-      if (typisvarlena && VARATT_IS_EXTERNAL_ONDISK(origval)) {
-        datum_msg.datum_unchanged = true;
-        datum_msg.datum_case = DECODERBUFS__DATUM_MESSAGE__DATUM_DATUM_UNCHANGED;
+      if (typisvarlena && VARATT_IS_EXTERNAL_ONDISK(tuple)) {
+        set_datum_value(&datum_msg, attr->atttypid, typoutput, heap_tuple_untoast_attr(attr));
       } else if (!typisvarlena) {
         set_datum_value(&datum_msg, attr->atttypid, typoutput, origval);
       } else {
