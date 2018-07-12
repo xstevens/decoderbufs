@@ -3,6 +3,19 @@ decoderbufs
 
 A PostgreSQL logical decoder output plugin to deliver data as Protocol Buffers
 
+# try this out
+
+The easiest way to try out changes in this repo, is to build the [docker-postgres](https://github.com/remerge/docker-postgres) around this addon. In order to achieve this, you have to clone this repo into the `docker-postgres` repo and swap out the `git clone` in the dockerfile for a `COPY decoderbufs decoderbufs`. 
+
+You can then build the docker-image (this can take a while, grab a coffee or something...) with `docker build -t custom-postgres .` (or any tag you like) and run it with `docker run -v /some/local/path/for/data/:/var/lib/postgresql/data -p 5432:5432 --rm custom-postgres`.
+
+One easy way of interacting with the database is to use the [rails app](https://github.com/remerge/api). Get a fresh database with `bundle exec rails db:fresh` and seed it with `bundle exec rails db:seed`. 
+After this you can start kafka with `docker run -d --name kafka -p 2181:2181 -p 9092:9092 --env ADVERTISED_HOST=localhost --env ADVERTISED_PORT=9092 spotify/kafka` and [p2q](https://github.com/remerge/p2q).
+
+You should already get messages in the kafka topic `changes_v2`, which you can read with [rcmd](https://github.com/remerge/recmd) or just with a small go script using [sarama](https://github.com/Shopify/sarama) and our [decoderbuf definition](github.com/remerge/decoderbufs-proto-go).
+
+You especially want to try out toast cases, which you get by having a value > 1-2kb in one column and updating another column.
+
 # decoderbufs
 
 Version: 0.1.0
