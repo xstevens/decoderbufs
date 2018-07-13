@@ -3,6 +3,73 @@ decoderbufs
 
 A PostgreSQL logical decoder output plugin to deliver data as Protocol Buffers
 
+# try this out
+
+The easiest way to try out changes in this repo, is to build the [docker-postgres](https://github.com/remerge/docker-postgres) around this addon. In order to achieve this, you have to clone this repo into the `docker-postgres` repo and swap out the `git clone` [in the dockerfile](https://github.com/remerge/docker-postgres/blob/56d05cdd6d4c32dcffa6e0a1408c23e058b5aa14/Dockerfile#L20) for a `COPY decoderbufs decoderbufs`: 
+```
+RUN git clone --depth 1 https://github.com/remerge/decoderbufs.git && ...
+```
+=> 
+```
+COPY decoderbufs decoderbufs
+RUN ...
+```
+
+You can then build the docker-image (this can take a while, grab a coffee or something...) with `docker build -t custom-postgres .` (or any tag you like) and run it with `docker run -v /some/local/path/for/data/:/var/lib/postgresql/data -p 5432:5432 --rm custom-postgres`.
+
+One easy way of interacting with the database is to use the [rails app](https://github.com/remerge/api). Get a fresh database with `bundle exec rails db:fresh` and seed it with `bundle exec rails db:seed`.
+
+Then you can use the rails console to interact with the database: `bundle exec rails console` `c = Campaign.last; c.description= "134567890" * 10000; c.save; c.name = "jeff"`
+
+After this you can start kafka with `docker run -d --name kafka -p 2181:2181 -p 9092:9092 --env ADVERTISED_HOST=localhost --env ADVERTISED_PORT=9092 spotify/kafka` and [p2q](https://github.com/remerge/p2q).
+
+You should already get messages in the kafka topic `changes_v2`, which you can read with [rcmd](https://github.com/remerge/recmd) or just with a small go script using [sarama](https://github.com/Shopify/sarama) and our [decoderbuf definition](github.com/remerge/decoderbufs-proto-go):
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/Shopify/sarama"
+	bufs "github.com/remerge/decoderbufs-proto-go"
+)
+
+func main() {
+	config := sarama.NewConfig()
+	fmt.Println("starting")
+	client, err := sarama.NewConsumer([]string{"localhost:9092"}, config)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("consumer ..")
+	consumer, err := client.ConsumePartition("changes_v2", 0, sarama.OffsetNewest)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("will read")
+	counter := 0
+loop:
+	for {
+		select {
+		case msg := <-consumer.Messages():
+			message := &bufs.RowMessage{}
+			err := message.Unmarshal(msg.Value)
+			if err != nil {
+				fmt.Println(err)
+			}
+			fmt.Println(message)
+			counter++
+			fmt.Println("counter now: ", counter)
+		case <-consumer.Errors():
+			break loop
+		}
+	}
+}
+```
+
+
+You especially want to try out toast cases, which you get by having a value > 1-2kb in one column and updating another column.
+
 # decoderbufs
 
 Version: 0.1.0
