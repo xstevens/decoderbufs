@@ -187,7 +187,7 @@ const ProtobufCMessageDescriptor decoderbufs__point__descriptor =
   (ProtobufCMessageInit) decoderbufs__point__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor decoderbufs__datum_message__field_descriptors[11] =
+static const ProtobufCFieldDescriptor decoderbufs__datum_message__field_descriptors[12] =
 {
   {
     "column_name",
@@ -321,6 +321,18 @@ static const ProtobufCFieldDescriptor decoderbufs__datum_message__field_descript
     0 | PROTOBUF_C_FIELD_FLAG_ONEOF,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
+  {
+    "is_primary_key",
+    12,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_BOOL,
+    offsetof(Decoderbufs__DatumMessage, has_is_primary_key),
+    offsetof(Decoderbufs__DatumMessage, is_primary_key),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
 };
 static const unsigned decoderbufs__datum_message__field_indices_by_name[] = {
   0,   /* field[0] = column_name */
@@ -334,11 +346,12 @@ static const unsigned decoderbufs__datum_message__field_indices_by_name[] = {
   9,   /* field[9] = datum_point */
   7,   /* field[7] = datum_string */
   10,   /* field[10] = datum_unchanged */
+  11,   /* field[11] = is_primary_key */
 };
 static const ProtobufCIntRange decoderbufs__datum_message__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 11 }
+  { 0, 12 }
 };
 const ProtobufCMessageDescriptor decoderbufs__datum_message__descriptor =
 {
@@ -348,7 +361,7 @@ const ProtobufCMessageDescriptor decoderbufs__datum_message__descriptor =
   "Decoderbufs__DatumMessage",
   "decoderbufs",
   sizeof(Decoderbufs__DatumMessage),
-  11,
+  12,
   decoderbufs__datum_message__field_descriptors,
   decoderbufs__datum_message__field_indices_by_name,
   1,  decoderbufs__datum_message__number_ranges,
