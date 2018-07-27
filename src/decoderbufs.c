@@ -706,7 +706,7 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
           rmsg.old_tuple =
               palloc(sizeof(Decoderbufs__DatumMessage*) * tupdesc->natts);
           rmsg.n_old_tuple -= tuple_to_tuple_msg(rmsg.old_tuple, relation,
-                             &change->data.tp.oldtuple->tuple, tupdesc, NULL);
+                             &change->data.tp.oldtuple->tuple, tupdesc, index_tupdesc);
         }
         if (change->data.tp.newtuple != NULL) {
           TupleDesc tupdesc = RelationGetDescr(relation);
