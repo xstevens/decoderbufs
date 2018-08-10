@@ -1,3 +1,6 @@
+# WARNING
+I worked on this code as a PoC 4 years ago. I have not actively maintained it and I've moved on to other projects. You're still free to use it, but keep this in mind. If you're looking for something more actively maintained check out [Debezium's fork](https://github.com/debezium/postgres-decoderbufs).
+
 decoderbufs
 ===========
 
