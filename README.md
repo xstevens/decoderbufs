@@ -15,15 +15,15 @@ COPY decoderbufs decoderbufs
 RUN ...
 ```
 
-You can then build the docker-image (this can take a while, grab a coffee or something...) with `docker build -t custom-postgres .` (or any tag you like) and run it with `docker run -v /some/local/path/for/data/:/var/lib/postgresql/data -p 5432:5432 --rm custom-postgres`.
+You can then build the docker-image (this can take a while, grab a coffee or something...) with `docker build -t custom-postgres .` (or any tag you like) and run it with `docker run -p 5432:5432 --rm custom-postgres`.
 
-One easy way of interacting with the database is to use the [rails app](https://github.com/remerge/api). Get a fresh database with `bundle exec rails db:fresh` and seed it with `bundle exec rails db:seed`.
+Start kafka with `docker run -d --name --rm kafka -p 2181:2181 -p 9092:9092 --env ADVERTISED_HOST=localhost --env ADVERTISED_PORT=9092 spotify/kafka`
 
-Then you can use the rails console to interact with the database: `bundle exec rails console` `c = Campaign.last; c.description= "134567890" * 10000; c.save; c.name = "jeff"`
+One easy way of interacting with the database is to use the [rails app](https://github.com/remerge/api). Get a fresh database with `bundle exec rails db:fresh`. Start [p2q](https://github.com/remerge/p2q) and then seed the database with `bundle exec rails db:seed`.
 
-After this you can start kafka with `docker run -d --name kafka -p 2181:2181 -p 9092:9092 --env ADVERTISED_HOST=localhost --env ADVERTISED_PORT=9092 spotify/kafka` and [p2q](https://github.com/remerge/p2q).
+Then you can use the rails console to interact with the database: `bundle exec rails console` `a = AdAsset.last; a.value = "a" * 512_000; a.save; a.touch`
 
-You should already get messages in the kafka topic `changes_v2`, which you can read with [rcmd](https://github.com/remerge/recmd) or just with a small go script using [sarama](https://github.com/Shopify/sarama) and our [decoderbuf definition](github.com/remerge/decoderbufs-proto-go):
+You should already have messages in the kafka topic `changes_v2`, which you can read with [rcmd](https://github.com/remerge/recmd) or just with a small go script using [sarama](https://github.com/Shopify/sarama) and our [decoderbuf definition](github.com/remerge/decoderbufs-proto-go):
 ```go
 package main
 
@@ -68,7 +68,9 @@ loop:
 ```
 
 
-You especially want to try out toast cases, which you get by having a value > 1-2kb in one column and updating another column.
+You especially want to try out toast cases, which you get by having a value > ~512kB in one column and updating another column.
+
+Keep in mind that *you need to use a fresh kafka container* between different database builds, since p2q stores its message offset in kafka.
 
 # decoderbufs
 
