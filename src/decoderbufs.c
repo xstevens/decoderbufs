@@ -671,7 +671,7 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
   TupleDesc index_tupdesc = NULL;
   Relation index_rel = NULL;
   if (!is_rel_non_selective && OidIsValid(relation->rd_replidindex)) {
-    index_rel = index_open(relation->rd_replidindex, ShareLock);
+    index_rel = index_open(relation->rd_replidindex, AccessShareLock);
     index_tupdesc = RelationGetDescr(index_rel);
   }
   rmsg.transaction_id = txn->xid;
@@ -737,7 +737,7 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
   }
 
   if (index_rel != NULL) {
-    index_close(index_rel, NoLock);
+    index_close(index_rel, AccessShareLock);
   }
 
   /* write msg */
