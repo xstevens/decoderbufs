@@ -17,7 +17,7 @@ RUN ...
 
 You can then build the docker-image (this can take a while, grab a coffee or something...) with `docker build -t custom-postgres .` (or any tag you like) and run it with `docker run -p 5432:5432 --rm custom-postgres`.
 
-Start kafka with `docker run -d --name --rm kafka -p 2181:2181 -p 9092:9092 --env ADVERTISED_HOST=localhost --env ADVERTISED_PORT=9092 spotify/kafka`
+Start kafka with `docker run -d --name kafka --rm -p 2181:2181 -p 9092:9092 --env ADVERTISED_HOST=localhost --env ADVERTISED_PORT=9092 spotify/kafka`
 
 One easy way of interacting with the database is to use the [rails app](https://github.com/remerge/api). Get a fresh database with `bundle exec rails db:fresh`. Start [p2q](https://github.com/remerge/p2q) and then seed the database with `bundle exec rails db:seed`.
 
