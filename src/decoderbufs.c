@@ -670,8 +670,8 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
   // set primary key only if it exists for the table
   TupleDesc index_tupdesc = NULL;
   Relation index_rel = NULL;
-  if (!is_rel_non_selective && OidIsValid(relation->rd_replidindex)) {
-    index_rel = index_open(relation->rd_replidindex, AccessShareLock);
+  if (OidIsValid(relation->rd_pkindex)) {
+    index_rel = index_open(relation->rd_pkindex, AccessShareLock);
     index_tupdesc = RelationGetDescr(index_rel);
   }
   rmsg.transaction_id = txn->xid;

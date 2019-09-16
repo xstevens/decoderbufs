@@ -14,7 +14,7 @@ RUN git clone --depth 1 --branch v1.2.1 https://github.com/protobuf-c/protobuf-c
   && cd .. && rm -rf protobuf-c
 
 RUN apt-get update -qq \
-  && apt-get install -y --force-yes postgresql-server-dev-9.6 \
+  && apt-get install -y --force-yes postgresql-server-dev-10 \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /build
