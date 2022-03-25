@@ -644,6 +644,8 @@ static int tuple_to_tuple_msg(Decoderbufs__DatumMessage **tmsg,
   return skipped;
 }
 
+const char *PG_TEMP_PREFIX = "pg_temp_";
+  
 /* callback for individual changed tuples */
 static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
                              Relation relation, ReorderBufferChange *change) {
@@ -655,6 +657,10 @@ static void pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
   bool is_rel_non_selective;
   Decoderbufs__RowMessage rmsg = DECODERBUFS__ROW_MESSAGE__INIT;
   class_form = RelationGetForm(relation);
+
+  if (strncmp(PG_TEMP_PREFIX, NameStr(class_form->relname), strlen(PG_TEMP_PREFIX)) == 0) {
+    return;
+  }
 
   data = ctx->output_plugin_private;
 
